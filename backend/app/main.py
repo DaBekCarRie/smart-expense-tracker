@@ -1,0 +1,54 @@
+from __future__ import annotations
+
+from contextlib import asynccontextmanager
+
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from redis.asyncio import Redis
+
+from app.config import settings
+
+redis_client: Redis = None  # type: ignore[assignment]
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    global redis_client
+    redis_client = Redis.from_url(settings.REDIS_URL, decode_responses=True)
+    yield
+    await redis_client.aclose()
+
+
+def create_app() -> FastAPI:
+    app = FastAPI(
+        title="Smart Expense Tracker API",
+        version="1.0.0",
+        lifespan=lifespan,
+    )
+
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.CORS_ORIGINS,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
+    from app.routers.auth import router as auth_router
+    from app.routers.categories import router as categories_router
+    from app.routers.expenses import router as expenses_router
+    from app.routers.health import router as health_router
+    from app.routers.ocr import router as ocr_router
+    from app.api.transactions import router as transactions_router
+
+    app.include_router(health_router)
+    app.include_router(auth_router, prefix="/api/v1")
+    app.include_router(categories_router, prefix="/api/v1")
+    app.include_router(expenses_router, prefix="/api/v1")
+    app.include_router(ocr_router, prefix="/api/v1")
+    app.include_router(transactions_router, prefix="/api/v1")
+
+    return app
+
+
+app = create_app()

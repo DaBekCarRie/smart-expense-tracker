@@ -1,0 +1,22 @@
+"""OCR provider abstract base class."""
+from __future__ import annotations
+
+from abc import ABC, abstractmethod
+
+from app.schemas.ocr import OCRResult
+
+
+class OCRProvider(ABC):
+    """All OCR backends must implement this interface."""
+
+    @abstractmethod
+    async def extract(self, image_bytes: bytes) -> OCRResult:
+        """Extract structured data from receipt image bytes.
+
+        Args:
+            image_bytes: Raw bytes of the uploaded receipt image.
+
+        Returns:
+            OCRResult with parsed merchant, amount, date, etc.
+        """
+        ...
