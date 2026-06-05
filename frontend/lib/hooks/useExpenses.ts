@@ -69,8 +69,8 @@ export function useCategories() {
 export function useCreateCategory() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ name, color }: { name: string; color: string }) =>
-      createCategory(name, color),
+    mutationFn: ({ name, color, icon }: { name: string; color: string; icon?: string | null }) =>
+      createCategory(name, color, icon),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["categories"] });
     },

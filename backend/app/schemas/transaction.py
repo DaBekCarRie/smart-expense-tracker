@@ -46,7 +46,7 @@ class TransactionUpdate(BaseModel):
     expense_date: date | None = None
     category_id: int | None = None
     notes: str | None = None
-    receipt_image_url: str | None = None
+    receipt_url: str | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -62,7 +62,7 @@ class TransactionResponse(BaseModel):
     expense_date: date
     category_id: int | None
     notes: str | None = None
-    receipt_image_url: str | None = None
+    receipt_url: str | None = None
     created_at: datetime
 
     model_config = ConfigDict(

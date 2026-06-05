@@ -6,6 +6,7 @@ import { useExpenses, useCategories } from "@/lib/hooks/useExpenses";
 import { formatCurrency } from "@/lib/utils/formatters";
 import type { Expense } from "@/types";
 import { cn } from "@/lib/utils/cn";
+import { Skeleton } from "@/components/ui/skeleton";
 
 // Dynamic imports — charts are heavy Recharts bundles; no SSR needed
 const CategoryBreakdownChart = dynamic(
@@ -26,15 +27,15 @@ const MonthlySummaryChart = dynamic(
 
 function ChartSkeleton() {
   return (
-    <div className="h-[280px] w-full rounded-lg bg-gray-100 animate-pulse" />
+    <Skeleton className="h-[280px] w-full" />
   );
 }
 
 function StatCardSkeleton() {
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-5 animate-pulse">
-      <div className="h-4 w-28 bg-gray-200 rounded mb-3" />
-      <div className="h-7 w-36 bg-gray-200 rounded" />
+    <div className="bg-white rounded-doodle border-doodle shadow-doodle p-5">
+      <Skeleton className="h-4 w-28 mb-3" />
+      <Skeleton className="h-7 w-36" />
     </div>
   );
 }
@@ -57,7 +58,7 @@ export default function DashboardPage() {
 
   // Fetch last 6 months of expenses for charts (up to 200 items)
   const { data: expensePage, isLoading: expensesLoading } = useExpenses({
-    limit: 200,
+    limit: 100,
     date_from: dateFrom,
   });
   const { data: categories, isLoading: categoriesLoading } = useCategories();
@@ -102,8 +103,8 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-bold text-gray-900">Dashboard</h1>
-        <p className="text-sm text-gray-500 mt-0.5">
+        <h1 className="text-2xl font-bold text-black tracking-wide">Dashboard</h1>
+        <p className="text-sm font-bold text-gray-600 mt-0.5">
           Overview of your spending
         </p>
       </div>
@@ -119,59 +120,59 @@ export default function DashboardPage() {
           </>
         ) : (
           <>
-            <div className="bg-white rounded-xl border border-gray-200 p-5">
-              <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+            <div className="bg-pastel-pink rounded-doodle border-doodle shadow-doodle p-5 hover:translate-y-[-2px] hover:shadow-[4px_6px_0px_0px_rgba(0,0,0,1)] transition-all">
+              <p className="text-xs font-bold text-black uppercase tracking-wider">
                 {monthLabel}
               </p>
               <div className="flex items-baseline gap-2">
-                <p className="mt-2 text-2xl font-bold text-gray-900">
+                <p className="mt-2 text-3xl font-bold text-black tracking-wide">
                   {formatCurrency(thisMonthTotal, "USD")}
                 </p>
                 {monthDiff !== null && (
                   <span className={cn(
-                    "text-xs font-bold",
-                    monthDiff > 0 ? "text-red-500" : "text-green-500"
+                    "text-sm font-bold",
+                    monthDiff > 0 ? "text-red-700" : "text-green-700"
                   )}>
                     {monthDiff > 0 ? "↑" : ""}{monthDiff.toFixed(0)}%
                   </span>
                 )}
               </div>
-              <p className="mt-1 text-xs text-gray-400">
+              <p className="mt-2 text-sm font-bold text-black opacity-80">
                 {thisMonthExpenses.length} expense
                 {thisMonthExpenses.length !== 1 ? "s" : ""}
               </p>
             </div>
 
-            <div className="bg-white rounded-xl border border-gray-200 p-5">
-              <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+            <div className="bg-pastel-blue rounded-doodle border-doodle shadow-doodle p-5 hover:translate-y-[-2px] hover:shadow-[4px_6px_0px_0px_rgba(0,0,0,1)] transition-all">
+              <p className="text-xs font-bold text-black uppercase tracking-wider">
                 Top Category
               </p>
-              <p className="mt-2 text-2xl font-bold text-gray-900 truncate">
+              <p className="mt-2 text-3xl font-bold text-black tracking-wide truncate">
                 {topCategory ?? "—"}
               </p>
-              <p className="mt-1 text-xs text-gray-400">most spent this month</p>
+              <p className="mt-2 text-sm font-bold text-black opacity-80">most spent this month</p>
             </div>
 
-            <div className="bg-white rounded-xl border border-gray-200 p-5">
-              <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+            <div className="bg-pastel-yellow rounded-doodle border-doodle shadow-doodle p-5 hover:translate-y-[-2px] hover:shadow-[4px_6px_0px_0px_rgba(0,0,0,1)] transition-all">
+              <p className="text-xs font-bold text-black uppercase tracking-wider">
                 Last 6 Months
               </p>
-              <p className="mt-2 text-2xl font-bold text-gray-900">
+              <p className="mt-2 text-3xl font-bold text-black tracking-wide">
                 {formatCurrency(allTimeTotal, "USD")}
               </p>
-              <p className="mt-1 text-xs text-gray-400">
+              <p className="mt-2 text-sm font-bold text-black opacity-80">
                 {expenses.length} expense{expenses.length !== 1 ? "s" : ""}
               </p>
             </div>
 
-            <div className="bg-white rounded-xl border border-gray-200 p-5">
-              <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+            <div className="bg-pastel-green rounded-doodle border-doodle shadow-doodle p-5 hover:translate-y-[-2px] hover:shadow-[4px_6px_0px_0px_rgba(0,0,0,1)] transition-all">
+              <p className="text-xs font-bold text-black uppercase tracking-wider">
                 Avg per Month
               </p>
-              <p className="mt-2 text-2xl font-bold text-gray-900">
+              <p className="mt-2 text-3xl font-bold text-black tracking-wide">
                 {formatCurrency(allTimeTotal / 6, "USD")}
               </p>
-              <p className="mt-1 text-xs text-gray-400">over 6 months</p>
+              <p className="mt-2 text-sm font-bold text-black opacity-80">over 6 months</p>
             </div>
           </>
         )}
@@ -179,15 +180,15 @@ export default function DashboardPage() {
 
       {/* Charts row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white rounded-xl border border-gray-200 p-5">
-          <h2 className="text-sm font-semibold text-gray-700 mb-4">
+        <div className="bg-white rounded-doodle border-doodle shadow-doodle p-5">
+          <h2 className="text-lg font-bold text-black tracking-wide mb-4">
             Monthly Spending
           </h2>
           <MonthlySummaryChart expenses={expenses} />
         </div>
 
-        <div className="bg-white rounded-xl border border-gray-200 p-5">
-          <h2 className="text-sm font-semibold text-gray-700 mb-4">
+        <div className="bg-white rounded-doodle border-doodle shadow-doodle p-5">
+          <h2 className="text-lg font-bold text-black tracking-wide mb-4">
             Spending by Category
           </h2>
           <CategoryBreakdownChart

@@ -66,28 +66,35 @@ export default function MonthlySummaryChart({ expenses }: Props) {
 
   return (
     <ResponsiveContainer width="100%" height={280}>
-      <BarChart data={data} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+      <BarChart data={data} margin={{ top: 12, right: 8, left: 0, bottom: 0 }}>
+        <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
         <XAxis
           dataKey="month"
-          tick={{ fontSize: 12, fill: "#6b7280" }}
-          axisLine={false}
-          tickLine={false}
+          tick={{ fontSize: 14, fill: "#000", fontWeight: "bold", fontFamily: "var(--font-patrick), cursive" }}
+          axisLine={{ stroke: "#000", strokeWidth: 2 }}
+          tickLine={{ stroke: "#000", strokeWidth: 2 }}
         />
         <YAxis
-          tick={{ fontSize: 12, fill: "#6b7280" }}
-          axisLine={false}
-          tickLine={false}
+          tick={{ fontSize: 14, fill: "#000", fontWeight: "bold", fontFamily: "var(--font-patrick), cursive" }}
+          axisLine={{ stroke: "#000", strokeWidth: 2 }}
+          tickLine={{ stroke: "#000", strokeWidth: 2 }}
           tickFormatter={(v: number) =>
             v >= 1000 ? `$${(v / 1000).toFixed(1)}k` : `$${v}`
           }
-          width={48}
+          width={52}
         />
         <Tooltip
           formatter={(value: number) => [formatCurrency(value, "USD"), "Total"]}
-          cursor={{ fill: "#eff6ff" }}
+          cursor={{ fill: "rgba(0,0,0,0.05)" }}
+          contentStyle={{ 
+            fontFamily: "var(--font-patrick), cursive", 
+            fontWeight: "bold",
+            borderRadius: "0",
+            border: "2px solid black",
+            boxShadow: "4px 4px 0px 0px rgba(0,0,0,1)"
+          }}
         />
-        <Bar dataKey="amount" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+        <Bar dataKey="amount" fill="#b5d8f7" stroke="#000" strokeWidth={2} radius={[0, 0, 0, 0]} />
       </BarChart>
     </ResponsiveContainer>
   );

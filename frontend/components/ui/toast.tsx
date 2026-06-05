@@ -22,9 +22,9 @@ const ToastViewport = React.forwardRef<
 ToastViewport.displayName = ToastPrimitive.Viewport.displayName;
 
 const toastVariants: Record<string, string> = {
-  default: "border border-gray-200 bg-white text-gray-900",
-  success: "border border-green-200 bg-green-50 text-green-900",
-  destructive: "border border-red-200 bg-red-50 text-red-900",
+  default: "bg-white text-black",
+  success: "bg-pastel-green text-black",
+  destructive: "bg-pastel-pink text-black",
 };
 
 interface ToastProps
@@ -39,7 +39,7 @@ const Toast = React.forwardRef<
   <ToastPrimitive.Root
     ref={ref}
     className={cn(
-      "group pointer-events-auto relative flex w-full items-center justify-between gap-3 overflow-hidden rounded-xl p-4 shadow-lg",
+      "group pointer-events-auto relative flex w-full items-center justify-between gap-3 overflow-hidden rounded-doodle border-doodle p-4 shadow-doodle",
       "transition-all data-[swipe=cancel]:translate-x-0",
       "data-[state=open]:animate-in data-[state=closed]:animate-out",
       "data-[swipe=end]:animate-out data-[state=closed]:fade-out-80",
@@ -58,7 +58,7 @@ const ToastTitle = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <ToastPrimitive.Title
     ref={ref}
-    className={cn("text-sm font-semibold", className)}
+    className={cn("text-lg font-bold tracking-wide", className)}
     {...props}
   />
 ));
@@ -70,7 +70,7 @@ const ToastDescription = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <ToastPrimitive.Description
     ref={ref}
-    className={cn("text-sm opacity-80", className)}
+    className={cn("text-sm opacity-90 font-sans", className)}
     {...props}
   />
 ));
@@ -83,13 +83,14 @@ const ToastClose = React.forwardRef<
   <ToastPrimitive.Close
     ref={ref}
     className={cn(
-      "rounded-lg p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors",
-      "focus:outline-none focus:ring-2 focus:ring-gray-400",
+      "rounded-doodle border-doodle bg-white shadow-doodle-sm p-1 text-black hover:bg-paper transition-all",
+      "active:translate-y-[2px] active:shadow-none",
+      "focus:outline-none focus:ring-0",
       className
     )}
     {...props}
   >
-    <X className="h-4 w-4" />
+    <X className="h-4 w-4" strokeWidth={2.5} />
   </ToastPrimitive.Close>
 ));
 ToastClose.displayName = ToastPrimitive.Close.displayName;

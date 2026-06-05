@@ -8,8 +8,19 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: {
-        sans: ["var(--font-inter)", "ui-sans-serif", "system-ui", "sans-serif"],
+        sans: ["var(--font-patrick)", "var(--font-mali)", "cursive", "sans-serif"],
       },
+      colors: {
+        paper: "#faf8f5",
+        pastel: {
+          blue: "#b5d8f7",
+          green: "#b8e6b3",
+          yellow: "#fdfd96",
+          pink: "#ffb6b9",
+          purple: "#e1ccfa",
+          orange: "#ffd1a9",
+        }
+      }
     },
   },
   plugins: [require("@tailwindcss/forms")],

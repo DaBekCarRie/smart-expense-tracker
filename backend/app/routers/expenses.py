@@ -49,7 +49,10 @@ async def create(
         expense_date=body.expense_date,
         category_id=body.category_id,
         notes=body.notes,
+        receipt_url=body.receipt_url,
     )
+    await db.commit()
+    await db.refresh(expense)
     return ExpenseOut.model_validate(expense)
 
 
@@ -105,6 +108,8 @@ async def update(
 
     updates = body.model_dump(exclude_unset=True)
     expense = await update_expense(db, expense=expense, updates=updates)
+    await db.commit()
+    await db.refresh(expense)
     return ExpenseOut.model_validate(expense)
 
 
@@ -118,4 +123,5 @@ async def delete(
     if expense is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Expense not found")
     await delete_expense(db, expense=expense)
+    await db.commit()
     return {"message": f"Expense {expense_id} deleted"}

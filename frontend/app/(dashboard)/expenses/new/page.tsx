@@ -3,6 +3,15 @@
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { useCreateExpense, useCategories } from "@/lib/hooks/useExpenses";
+import { ReceiptUploader } from "@/components/upload/ReceiptUploader";
+import { DateInput } from "@/components/ui/date-input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import type { ExpenseCreate } from "@/types";
 
 const CURRENCIES = ["USD", "EUR", "GBP", "THB", "JPY", "SGD", "AUD", "CAD"];
@@ -20,8 +29,9 @@ export default function NewExpensePage() {
   const [amount, setAmount] = useState("");
   const [currency, setCurrency] = useState("USD");
   const [expenseDate, setExpenseDate] = useState(today());
-  const [categoryId, setCategoryId] = useState<string>("");
+  const [categoryId, setCategoryId] = useState<string>("none");
   const [notes, setNotes] = useState("");
+  const [receiptUrl, setReceiptUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
@@ -39,8 +49,9 @@ export default function NewExpensePage() {
       amount: parsedAmount,
       currency,
       expense_date: expenseDate,
-      category_id: categoryId ? Number(categoryId) : null,
+      category_id: categoryId !== "none" ? Number(categoryId) : null,
       notes: notes.trim() || null,
+      receipt_url: receiptUrl,
     };
 
     try {
@@ -58,39 +69,37 @@ export default function NewExpensePage() {
   return (
     <div className="max-w-xl">
       <div className="mb-6">
-        <h1 className="text-xl font-bold text-gray-900">New Expense</h1>
-        <p className="text-sm text-gray-500 mt-0.5">
+        <h1 className="text-2xl font-bold text-black tracking-wide">New Expense</h1>
+        <p className="text-sm font-bold text-gray-600 mt-0.5">
           Fill in the details below
         </p>
       </div>
 
-      {/* M4 placeholder notice */}
-      <div className="mb-5 flex items-start gap-2.5 bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 text-sm text-blue-700">
-        <svg
-          className="w-4 h-4 mt-0.5 flex-shrink-0"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-          />
-        </svg>
-        Receipt upload with OCR will be available here (M4)
+      {/* ⭐ Receipt uploader — compress → WebP → OCR → pre-fill form */}
+      <div className="mb-6">
+        <h2 className="text-lg font-bold text-black mb-3 tracking-wide">
+          Scan a receipt <span className="text-gray-500 font-normal text-sm font-sans">(optional)</span>
+        </h2>
+        <ReceiptUploader
+          onApply={(data) => {
+            if (data.merchant) setMerchant(data.merchant);
+            if (data.amount !== undefined && data.amount !== null) setAmount(String(data.amount));
+            if (data.currency) setCurrency(data.currency);
+            if (data.expense_date) setExpenseDate(data.expense_date);
+            if (data.receipt_url) setReceiptUrl(data.receipt_url);
+          }}
+        />
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
+      <div className="bg-white rounded-doodle border-doodle shadow-doodle p-6">
         <form onSubmit={handleSubmit} noValidate className="space-y-5">
           {/* Merchant */}
           <div>
             <label
               htmlFor="merchant"
-              className="block text-sm font-medium text-gray-700 mb-1"
+              className="block text-sm font-bold text-black mb-1"
             >
-              Merchant <span className="text-red-500">*</span>
+              Merchant <span className="text-red-600">*</span>
             </label>
             <input
               id="merchant"
@@ -99,19 +108,19 @@ export default function NewExpensePage() {
               value={merchant}
               onChange={(e) => setMerchant(e.target.value)}
               placeholder="e.g. Starbucks"
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
+              className="w-full rounded-doodle border-doodle bg-white px-3 py-2 text-sm font-sans shadow-doodle-sm focus:outline-none focus:ring-0 focus:bg-paper disabled:opacity-50 transition-colors placeholder:text-gray-500"
               disabled={isLoading}
             />
           </div>
 
           {/* Amount + Currency */}
-          <div className="flex gap-3">
+          <div className="flex gap-4">
             <div className="flex-1">
               <label
                 htmlFor="amount"
-                className="block text-sm font-medium text-gray-700 mb-1"
+                className="block text-sm font-bold text-black mb-1"
               >
-                Amount <span className="text-red-500">*</span>
+                Amount <span className="text-red-600">*</span>
               </label>
               <input
                 id="amount"
@@ -122,48 +131,45 @@ export default function NewExpensePage() {
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 placeholder="0.00"
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
+                className="w-full rounded-doodle border-doodle bg-white px-3 py-2 text-sm font-sans shadow-doodle-sm focus:outline-none focus:ring-0 focus:bg-paper disabled:opacity-50 transition-colors placeholder:text-gray-500"
                 disabled={isLoading}
               />
             </div>
-            <div className="w-28">
+            <div className="w-32">
               <label
                 htmlFor="currency"
-                className="block text-sm font-medium text-gray-700 mb-1"
+                className="block text-sm font-bold text-black mb-1"
               >
                 Currency
               </label>
-              <select
-                id="currency"
+              <Select
                 value={currency}
-                onChange={(e) => setCurrency(e.target.value)}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white disabled:opacity-50"
+                onValueChange={setCurrency}
                 disabled={isLoading}
               >
-                {CURRENCIES.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger id="currency">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {CURRENCIES.map((c) => (
+                    <SelectItem key={c} value={c}>
+                      {c}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
           {/* Date */}
           <div>
-            <label
-              htmlFor="expense_date"
-              className="block text-sm font-medium text-gray-700 mb-1"
-            >
-              Date <span className="text-red-500">*</span>
+            <label className="block text-sm font-bold text-black mb-1">
+              Date <span className="text-red-600">*</span>
             </label>
-            <input
+            <DateInput
               id="expense_date"
-              type="date"
-              required
               value={expenseDate}
-              onChange={(e) => setExpenseDate(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
+              onChange={setExpenseDate}
               disabled={isLoading}
             />
           </div>
@@ -172,31 +178,34 @@ export default function NewExpensePage() {
           <div>
             <label
               htmlFor="category"
-              className="block text-sm font-medium text-gray-700 mb-1"
+              className="block text-sm font-bold text-black mb-1"
             >
               Category
             </label>
-            <select
-              id="category"
+            <Select
               value={categoryId}
-              onChange={(e) => setCategoryId(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white disabled:opacity-50"
+              onValueChange={setCategoryId}
               disabled={isLoading}
             >
-              <option value="">No category</option>
-              {(categories ?? []).map((cat) => (
-                <option key={cat.id} value={cat.id}>
-                  {cat.name}
-                </option>
-              ))}
-            </select>
+              <SelectTrigger id="category">
+                <SelectValue placeholder="No category" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">No category</SelectItem>
+                {(categories ?? []).map((cat) => (
+                  <SelectItem key={cat.id} value={String(cat.id)}>
+                    {cat.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Notes */}
           <div>
             <label
               htmlFor="notes"
-              className="block text-sm font-medium text-gray-700 mb-1"
+              className="block text-sm font-bold text-black mb-1"
             >
               Notes
             </label>
@@ -206,30 +215,30 @@ export default function NewExpensePage() {
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Optional notes…"
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none disabled:opacity-50"
+              className="w-full rounded-doodle border-doodle bg-white px-3 py-2 text-sm font-sans shadow-doodle-sm focus:outline-none focus:ring-0 focus:bg-paper resize-none disabled:opacity-50 transition-colors placeholder:text-gray-500"
               disabled={isLoading}
             />
           </div>
 
           {error && (
-            <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
+            <div className="rounded-doodle bg-pastel-pink border-doodle shadow-doodle-sm px-4 py-3 text-sm font-bold text-black">
               {error}
             </div>
           )}
 
-          <div className="flex gap-3 pt-1">
+          <div className="flex gap-4 pt-2">
             <button
               type="button"
               onClick={() => router.back()}
               disabled={isLoading}
-              className="flex-1 rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+              className="flex-1 rounded-doodle border-doodle bg-white px-4 py-2.5 text-base font-bold text-black shadow-doodle-sm hover:bg-paper focus:outline-none active:translate-y-[2px] active:shadow-none hover:translate-y-[-2px] hover:shadow-doodle disabled:opacity-60 disabled:cursor-not-allowed transition-all"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isLoading}
-              className="flex-1 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+              className="flex-1 rounded-doodle bg-pastel-blue border-doodle px-4 py-2.5 text-base font-bold text-black shadow-doodle hover:bg-blue-300 focus:outline-none active:translate-y-[2px] active:shadow-none hover:translate-y-[-2px] hover:shadow-[4px_6px_0px_0px_rgba(0,0,0,1)] disabled:opacity-60 disabled:cursor-not-allowed transition-all"
             >
               {isLoading ? "Saving…" : "Save expense"}
             </button>

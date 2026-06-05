@@ -12,8 +12,13 @@ import time
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from redis.asyncio import Redis
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.database import get_db
 from app.dependencies import get_current_user, get_redis
+from app.models.category import Category
+from app.models.user import User
 from app.schemas.ocr import OCRUploadResponse
 from app.services.ocr_service import ocr_service
 from app.utils.image import (
@@ -37,8 +42,9 @@ _MAX_SIZE = 10 * 1024 * 1024  # 10 MB — enforced before reading full bytes
 )
 async def upload_receipt(
     file: UploadFile = File(..., description="Receipt image (JPEG, PNG, WebP, GIF)"),
-    current_user=Depends(get_current_user),
+    current_user: User = Depends(get_current_user),
     redis: Redis = Depends(get_redis),
+    db: AsyncSession = Depends(get_db),
 ) -> OCRUploadResponse:
     """Process an uploaded receipt image through the Redis-cached OCR pipeline.
 
@@ -83,19 +89,46 @@ async def upload_receipt(
         image_bytes = compress_image(image_bytes)
 
     # ------------------------------------------------------------------ #
-    # 4. OCR pipeline (cache-first, enforced inside ocr_service)          #
+    # 4. Save image to disk
+    # ------------------------------------------------------------------ #
+    import os
+    import uuid
+
+    uploads_dir = os.path.join(os.getcwd(), "uploads")
+    os.makedirs(uploads_dir, exist_ok=True)
+    filename = f"{uuid.uuid4().hex}.webp"
+    file_path = os.path.join(uploads_dir, filename)
+    with open(file_path, "wb") as f:
+        f.write(image_bytes)
+    receipt_url = f"/uploads/{filename}"
+
+    # ------------------------------------------------------------------ #
+    # 5. Fetch user categories to help OCR
+    # ------------------------------------------------------------------ #
+    cat_result = await db.execute(
+        select(Category.name).where(Category.user_id == current_user.id)
+    )
+    category_names = list(cat_result.scalars().all())
+
+    # ------------------------------------------------------------------ #
+    # 6. OCR pipeline (cache-first, enforced inside ocr_service)          #
     # ------------------------------------------------------------------ #
     t0 = time.monotonic()
-    result = await ocr_service.process_receipt(image_bytes, redis)
+    result = await ocr_service.process_receipt(
+        image_bytes, redis, categories=category_names
+    )
     elapsed_ms = (time.monotonic() - t0) * 1000
-    result = result.model_copy(update={"processing_time_ms": elapsed_ms})
+    result = result.model_copy(
+        update={"processing_time_ms": elapsed_ms, "receipt_url": receipt_url}
+    )
 
     logger.info(
-        "OCR complete — user=%s cached=%s confidence=%.2f elapsed_ms=%.1f",
+        "OCR complete — user=%s cached=%s confidence=%.2f elapsed_ms=%.1f url=%s",
         current_user.id,
         result.cached,
         result.confidence,
         elapsed_ms,
+        receipt_url,
     )
 
     return OCRUploadResponse.from_result(result)

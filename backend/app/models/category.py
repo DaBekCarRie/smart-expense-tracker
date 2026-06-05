@@ -18,6 +18,7 @@ class Category(Base):
     )
     name: Mapped[str] = mapped_column(String(100), nullable=False)
     color: Mapped[str] = mapped_column(String(7), nullable=False, default="#6366f1")
+    icon: Mapped[str | None] = mapped_column(String(50), nullable=True)
 
     user: Mapped[User] = relationship("User", back_populates="categories")
     expenses: Mapped[list[Expense]] = relationship("Expense", back_populates="category")

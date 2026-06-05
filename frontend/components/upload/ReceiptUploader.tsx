@@ -103,12 +103,13 @@ export function ReceiptUploader({ onApply, className }: Props) {
       <div
         {...getRootProps()}
         className={cn(
-          "relative flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed p-8 text-center transition-colors cursor-pointer",
+          "relative flex flex-col items-center justify-center gap-3 rounded-doodle border-doodle border-dashed p-8 text-center transition-all cursor-pointer shadow-doodle",
           isDragActive
-            ? "border-blue-500 bg-blue-50"
-            : "border-gray-300 bg-gray-50 hover:border-gray-400 hover:bg-gray-100",
-          isBusy && "pointer-events-none opacity-60",
-          uploadState === "done" && "border-green-400 bg-green-50"
+            ? "border-black bg-pastel-blue translate-y-[2px] shadow-doodle-sm"
+            : "border-black bg-white hover:bg-paper hover:translate-y-[-2px] hover:shadow-[4px_6px_0px_0px_rgba(0,0,0,1)]",
+          isBusy && "pointer-events-none opacity-80 bg-paper",
+          uploadState === "done" && "border-black bg-pastel-green",
+          uploadState === "error" && "border-black bg-pastel-pink"
         )}
       >
         <input {...getInputProps()} />
@@ -119,19 +120,19 @@ export function ReceiptUploader({ onApply, className }: Props) {
           <img
             src={preview}
             alt="Receipt preview"
-            className="max-h-32 rounded-lg object-contain shadow-sm"
+            className="max-h-32 rounded-lg object-contain shadow-doodle-sm border-2 border-black"
           />
         )}
 
         {/* State-specific icon + label */}
         {uploadState === "idle" && (
           <>
-            <Upload className="h-8 w-8 text-gray-400" />
+            <Upload className="h-8 w-8 text-black" strokeWidth={2.5} />
             <div>
-              <p className="text-sm font-medium text-gray-700">
-                {isDragActive ? "Drop the image here" : "Drag & drop a receipt"}
+              <p className="text-lg font-bold text-black tracking-wide">
+                {isDragActive ? "Drop it like it's hot!" : "Drag & drop a receipt"}
               </p>
-              <p className="mt-0.5 text-xs text-gray-400">
+              <p className="mt-0.5 text-xs text-gray-600 font-bold">
                 or click to select — JPEG, PNG, HEIC, WebP
               </p>
             </div>
@@ -139,22 +140,22 @@ export function ReceiptUploader({ onApply, className }: Props) {
         )}
 
         {uploadState === "compressing" && (
-          <StatusRow icon={<Loader2 className="h-5 w-5 animate-spin text-blue-500" />}>
+          <StatusRow icon={<Loader2 className="h-6 w-6 animate-spin text-black" strokeWidth={2.5} />}>
             Compressing to WebP…
           </StatusRow>
         )}
 
         {uploadState === "uploading" && (
-          <StatusRow icon={<Loader2 className="h-5 w-5 animate-spin text-blue-500" />}>
+          <StatusRow icon={<Loader2 className="h-6 w-6 animate-spin text-black" strokeWidth={2.5} />}>
             Uploading &amp; extracting with OCR…
           </StatusRow>
         )}
 
         {uploadState === "done" && (
-          <StatusRow icon={<CheckCircle2 className="h-5 w-5 text-green-600" />}>
-            <span className="text-green-700">Extraction complete</span>
+          <StatusRow icon={<CheckCircle2 className="h-6 w-6 text-black" strokeWidth={2.5} />}>
+            <span className="text-black font-bold text-lg">Extraction complete</span>
             {fileName && (
-              <span className="ml-1.5 text-xs text-gray-400 font-normal truncate max-w-[180px]">
+              <span className="ml-1.5 text-xs text-gray-700 font-bold truncate max-w-[180px]">
                 {fileName}
               </span>
             )}
@@ -162,9 +163,9 @@ export function ReceiptUploader({ onApply, className }: Props) {
         )}
 
         {uploadState === "error" && (
-          <StatusRow icon={<AlertCircle className="h-5 w-5 text-red-500" />}>
-            <span className="text-red-700">Upload failed</span>
-            <span className="ml-1.5 text-xs text-gray-400 font-normal">
+          <StatusRow icon={<AlertCircle className="h-6 w-6 text-black" strokeWidth={2.5} />}>
+            <span className="text-black font-bold text-lg">Upload failed</span>
+            <span className="ml-1.5 text-xs text-gray-700 font-bold">
               — tap to try again
             </span>
           </StatusRow>
@@ -172,11 +173,11 @@ export function ReceiptUploader({ onApply, className }: Props) {
 
         {/* Compression stats (shown when done or after compressing) */}
         {compressionInfo && uploadState !== "idle" && (
-          <p className="text-xs text-gray-500">
-            <ImageIcon className="inline h-3 w-3 mr-1 align-text-bottom" />
+          <p className="text-xs text-gray-700 font-bold">
+            <ImageIcon className="inline h-4 w-4 mr-1 align-text-bottom text-black" strokeWidth={2.5} />
             {Math.round(compressionInfo.originalKB)} KB →{" "}
             {Math.round(compressionInfo.compressedKB)} KB &nbsp;
-            <span className="text-green-600 font-semibold">
+            <span className="text-green-700 font-bold text-sm">
               −{compressionInfo.savingPercent}%
             </span>
           </p>
@@ -196,9 +197,9 @@ export function ReceiptUploader({ onApply, className }: Props) {
 
       {/* Error detail */}
       {uploadState === "error" && ocrMutation.error && (
-        <div className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
-          <span>{ocrMutation.error.message ?? "OCR extraction failed. Please try again."}</span>
+        <div className="flex items-start gap-2 rounded-doodle border-doodle bg-red-100 px-4 py-3 text-sm text-black shadow-doodle-sm">
+          <AlertCircle className="h-5 w-5 flex-shrink-0 mt-0.5 text-black" strokeWidth={2.5} />
+          <span className="font-bold">{ocrMutation.error.message ?? "OCR extraction failed. Please try again."}</span>
         </div>
       )}
 
@@ -207,7 +208,7 @@ export function ReceiptUploader({ onApply, className }: Props) {
         <button
           type="button"
           onClick={handleReset}
-          className="text-xs text-gray-500 hover:text-gray-700 underline underline-offset-2"
+          className="text-sm font-bold text-gray-600 hover:text-black underline underline-offset-4 decoration-2"
         >
           Upload a different receipt
         </button>
@@ -226,7 +227,7 @@ function StatusRow({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
+    <div className="flex items-center gap-2 text-lg font-bold text-black">
       {icon}
       <span className="flex items-center gap-1">{children}</span>
     </div>

@@ -36,7 +36,9 @@ class OCRService:
     def __init__(self, provider: OCRProvider) -> None:
         self.provider = provider
 
-    async def process_receipt(self, image_bytes: bytes, redis: Redis) -> OCRResult:
+    async def process_receipt(
+        self, image_bytes: bytes, redis: Redis, categories: list[str] | None = None
+    ) -> OCRResult:
         """Return an OCRResult for *image_bytes*, consulting Redis first.
 
         Steps:
@@ -65,21 +67,30 @@ class OCRService:
                 result = result.model_copy(update={"cached": True})
                 return result
             except Exception as exc:  # noqa: BLE001
-                logger.warning("Cache deserialisation failed (%s) — re-running OCR", exc)
+                logger.warning(
+                    "Cache deserialisation failed (%s) — re-running OCR", exc
+                )
 
         # ------------------------------------------------------------------ #
         # Step 2 — Cache miss: call OCR provider                              #
         # ------------------------------------------------------------------ #
         logger.debug("OCR cache MISS — key=%s", cache_key)
-        result = await self.provider.extract(image_bytes)
+        result = await self.provider.extract(image_bytes, categories=categories)
 
         # ------------------------------------------------------------------ #
-        # Step 3 — Store result in Redis with TTL=3600                        #
+        # Step 3 — Store result in Redis with TTL=3600 (only if successful)   #
         # ------------------------------------------------------------------ #
-        try:
-            await redis.setex(cache_key, _CACHE_TTL, result.model_dump_json())
-        except Exception as exc:  # noqa: BLE001
-            logger.warning("Redis SETEX failed (%s) — result not cached", exc)
+        is_error = (
+            "[Gemini error:" in result.raw_text or "[OpenAI error:" in result.raw_text
+        )
+
+        if not is_error:
+            try:
+                await redis.setex(cache_key, _CACHE_TTL, result.model_dump_json())
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("Redis SETEX failed (%s) — result not cached", exc)
+        else:
+            logger.debug("Skipping cache due to OCR error")
 
         return result
 
@@ -88,10 +99,15 @@ def build_ocr_service() -> OCRService:
     """Factory: select provider based on available config at import time."""
     from app.config import settings
 
-    if settings.OPENAI_API_KEY:
+    if settings.OCR_PROVIDER == "gemini" or settings.GEMINI_API_KEY:
+        from app.ocr.gemini_vision import GeminiVisionProvider
+
+        provider: OCRProvider = GeminiVisionProvider(api_key=settings.GEMINI_API_KEY)
+        logger.info("OCR provider: GeminiVisionProvider (gemini-2.5-flash)")
+    elif settings.OPENAI_API_KEY or settings.OCR_PROVIDER == "openai":
         from app.ocr.openai_vision import OpenAIVisionProvider
 
-        provider: OCRProvider = OpenAIVisionProvider(api_key=settings.OPENAI_API_KEY)
+        provider = OpenAIVisionProvider(api_key=settings.OPENAI_API_KEY)
         logger.info("OCR provider: OpenAIVisionProvider (gpt-4o-mini)")
     else:
         from app.ocr.tesseract_server import TesseractProvider

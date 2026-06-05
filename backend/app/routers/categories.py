@@ -18,12 +18,14 @@ router = APIRouter(prefix="/categories", tags=["categories"])
 class CategoryCreate(BaseModel):
     name: str
     color: str = "#6366f1"
+    icon: str | None = "Tag"
 
 
 class CategoryOut(BaseModel):
     id: int
     name: str
     color: str
+    icon: str | None
     model_config = ConfigDict(from_attributes=True)
 
 
@@ -44,9 +46,9 @@ async def create_category(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    cat = Category(user_id=current_user.id, name=body.name, color=body.color)
+    cat = Category(user_id=current_user.id, name=body.name, color=body.color, icon=body.icon)
     db.add(cat)
-    await db.flush()
+    await db.commit()
     await db.refresh(cat)
     return CategoryOut.model_validate(cat)
 
@@ -67,12 +69,13 @@ async def update_category(
 
     cat.name = body.name
     cat.color = body.color
-    await db.flush()
+    cat.icon = body.icon
+    await db.commit()
     await db.refresh(cat)
     return CategoryOut.model_validate(cat)
 
 
-@router.delete("/{category_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{category_id}", status_code=status.HTTP_200_OK)
 async def delete_category(
     category_id: int,
     db: AsyncSession = Depends(get_db),
@@ -85,3 +88,5 @@ async def delete_category(
     if not cat:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Category not found")
     await db.delete(cat)
+    await db.commit()
+    return {"message": f"Category {category_id} deleted"}

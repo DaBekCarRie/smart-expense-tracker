@@ -37,7 +37,7 @@ smart-expense-tracker/
 
 ## 🛠️ Engineering Standards
 
-### 🎨 Frontend Standards (Senior Frontend Dev)
+### 🎨 Frontend Standards & Design System
 - **Typing:** All components and API responses MUST be strongly typed. No `any`. Interfaces live in `frontend/src/types/`.
 - **Performance:** Use `next/dynamic` for heavy components like Charts or complex UI modules.
 - **Optimized Uploads:** Implement client-side image compression (to WebP) BEFORE uploading receipts to the backend.
@@ -47,7 +47,24 @@ smart-expense-tracker/
   - API calls MUST be centralized in `frontend/src/lib/api.ts` or scoped modules within `lib/api/`.
 - **Environment:** Use environment variables for API URLs; never hardcode.
 
-### ⚙️ Backend Standards (Senior Backend Dev)
+#### 🖌️ Special Theme: Cute Doodle & Hand-drawn Sketch Aesthetic
+To maintain a high-quality, charming doodle aesthetic across the entire app, follow these UI guidelines:
+1. **Background & Color Palette:**
+   - Background must use a warm paper texture style (e.g. `#faf8f5` or `#fcfbf9`).
+   - Use soft pastel accent colors for active items or chart categories.
+2. **Outlines & Shadows (Neo-brutalism Doodle style):**
+   - Apply solid black outlines to cards, inputs, and buttons: `border-2 border-black`.
+   - Apply a rigid black shadow: `shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]`.
+   - Mimic hand-drawn shapes using uneven border-radii where appropriate: `rounded-[255px_15px_225px_15px]/[15px_225px_15px_255px]`.
+3. **Typography:**
+   - Use Google Fonts **Patrick Hand** (for English) and **Mali** (for Thai) as the primary font family to render text as handwritten ink.
+4. **Icons & Charts:**
+   - Use outline-based icons with thicker strokes (`strokeWidth={2.5}`) to resemble pen sketches.
+   - Use custom SVG structures or dynamic imports (`next/dynamic`) to style Recharts charts with thick black borders on data slices.
+
+---
+
+## ⚙️ Backend Standards (Senior Backend Dev)
 - **Asynchronous First:** ALWAYS use `async/await` for all database operations and external API calls.
 - **Caching Strategy:** OCR results must be cached in Redis:
   1. Hash the image.
@@ -60,7 +77,9 @@ smart-expense-tracker/
 - **Type Safety:** All endpoints must return typed Pydantic response schemas.
 - **Layering:** Keep routes in `/api/`, business logic in `/services/`, and DB models in `/models/`.
 
-### 🧪 Quality Assurance (QA Agent)
+---
+
+## 🧪 Quality Assurance (QA Agent)
 - **API Contracts:** Every new endpoint must be documented with an API contract table:
   | Method | Endpoint | Auth? | Request Body | Response Schema |
   |--------|----------|-------|-------------|-----------------|

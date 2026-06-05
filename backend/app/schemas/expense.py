@@ -17,6 +17,7 @@ class ExpenseCreate(BaseModel):
     expense_date: date
     category_id: int | None = None
     notes: str | None = None
+    receipt_url: str | None = None
 
 
 class ExpenseUpdate(BaseModel):
@@ -26,6 +27,7 @@ class ExpenseUpdate(BaseModel):
     expense_date: date | None = None
     category_id: int | None = None
     notes: str | None = None
+    receipt_url: str | None = None
 
 
 class ExpenseOut(BaseModel):

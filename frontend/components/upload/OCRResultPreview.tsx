@@ -13,13 +13,13 @@ function ConfidenceBadge({ confidence }: { confidence: number }) {
   const pct = Math.round(confidence * 100);
   const color =
     pct >= 80
-      ? "bg-green-100 text-green-700"
+      ? "bg-pastel-green text-black"
       : pct >= 50
-      ? "bg-yellow-100 text-yellow-700"
-      : "bg-red-100 text-red-700";
+      ? "bg-pastel-yellow text-black"
+      : "bg-pastel-pink text-black";
 
   return (
-    <span className={cn("inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold", color)}>
+    <span className={cn("inline-flex items-center px-2 py-0.5 rounded-doodle border-2 border-black shadow-doodle-sm text-xs font-bold", color)}>
       {pct}% confidence
     </span>
   );
@@ -34,9 +34,9 @@ function Field({
 }) {
   return (
     <div>
-      <dt className="text-xs font-medium text-gray-500">{label}</dt>
-      <dd className="mt-0.5 text-sm font-semibold text-gray-900">
-        {value ?? <span className="text-gray-400 font-normal">Not detected</span>}
+      <dt className="text-xs font-bold text-gray-700 tracking-wide uppercase">{label}</dt>
+      <dd className="mt-0.5 text-base font-bold text-black">
+        {value ?? <span className="text-gray-500 font-sans font-normal">Not detected</span>}
       </dd>
     </div>
   );
@@ -49,29 +49,30 @@ export function OCRResultPreview({ result, onApply }: Props) {
     if (result.amount !== null) data.amount = result.amount;
     if (result.currency) data.currency = result.currency;
     if (result.expense_date) data.expense_date = result.expense_date;
+    if (result.receipt_url) data.receipt_url = result.receipt_url;
     onApply(data);
   }
 
   return (
-    <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 space-y-4">
+    <div className="rounded-doodle border-doodle bg-pastel-blue p-5 space-y-5 shadow-doodle">
       {/* Header */}
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <h3 className="text-sm font-semibold text-blue-900">OCR Extraction Result</h3>
+      <div className="flex items-center justify-between gap-3 flex-wrap border-b-2 border-black pb-2">
+        <h3 className="text-lg font-bold text-black tracking-wide">OCR Extraction Result</h3>
         <div className="flex items-center gap-2 flex-wrap">
           <ConfidenceBadge confidence={result.confidence} />
           {result.cached && (
-            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-purple-100 text-purple-700">
+            <span className="inline-flex items-center px-2 py-0.5 rounded-doodle border-2 border-black shadow-doodle-sm text-xs font-bold bg-pastel-purple text-black">
               Cached
             </span>
           )}
-          <span className="text-xs text-gray-500">
+          <span className="text-xs font-bold text-gray-700 bg-white border-2 border-black px-2 py-0.5 rounded-doodle shadow-doodle-sm">
             {result.processing_time_ms}ms
           </span>
         </div>
       </div>
 
       {/* Extracted fields */}
-      <dl className="grid grid-cols-2 gap-x-4 gap-y-3">
+      <dl className="grid grid-cols-2 gap-x-4 gap-y-4">
         <Field label="Merchant" value={result.merchant} />
         <Field
           label="Amount"
@@ -94,7 +95,7 @@ export function OCRResultPreview({ result, onApply }: Props) {
       <button
         type="button"
         onClick={handleApply}
-        className="w-full rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
+        className="w-full rounded-doodle border-doodle bg-white px-4 py-2.5 text-base font-bold text-black shadow-doodle hover:bg-paper hover:translate-y-[-2px] hover:shadow-[4px_6px_0px_0px_rgba(0,0,0,1)] focus:outline-none active:translate-y-[2px] active:shadow-none transition-all"
       >
         Apply to form
       </button>

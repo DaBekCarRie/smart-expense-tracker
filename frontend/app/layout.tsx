@@ -1,12 +1,20 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Patrick_Hand, Mali } from "next/font/google";
 import { Providers } from "@/components/layout/Providers";
 import "./globals.css";
 
-const inter = Inter({
+const patrickHand = Patrick_Hand({
+  weight: "400",
   subsets: ["latin"],
   display: "swap",
-  variable: "--font-inter",
+  variable: "--font-patrick",
+});
+
+const mali = Mali({
+  weight: ["400", "500", "600", "700"],
+  subsets: ["latin", "thai"],
+  display: "swap",
+  variable: "--font-mali",
 });
 
 export const metadata: Metadata = {
@@ -20,8 +28,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={inter.variable}>
-      <body className="font-sans antialiased bg-gray-50 text-gray-900">
+    <html lang="en" className={`${patrickHand.variable} ${mali.variable}`}>
+      <body className="font-sans antialiased text-slate-900">
         <Providers>{children}</Providers>
       </body>
     </html>

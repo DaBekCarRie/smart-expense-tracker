@@ -135,7 +135,9 @@ class TesseractProvider(OCRProvider):
     to a thread-pool executor to avoid blocking the asyncio event loop.
     """
 
-    async def extract(self, image_bytes: bytes) -> OCRResult:
+    async def extract(
+        self, image_bytes: bytes, categories: list[str] | None = None
+    ) -> OCRResult:
         loop = asyncio.get_running_loop()
         try:
             raw_text: str = await loop.run_in_executor(None, partial(_run_tesseract, image_bytes))

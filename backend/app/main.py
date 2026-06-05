@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from redis.asyncio import Redis
 
 from app.config import settings
@@ -15,6 +17,7 @@ redis_client: Redis = None  # type: ignore[assignment]
 async def lifespan(app: FastAPI):
     global redis_client
     redis_client = Redis.from_url(settings.REDIS_URL, decode_responses=True)
+    os.makedirs("uploads", exist_ok=True)
     yield
     await redis_client.aclose()
 
@@ -33,6 +36,9 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+    os.makedirs("uploads", exist_ok=True)
+    app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
     from app.routers.auth import router as auth_router
     from app.routers.categories import router as categories_router

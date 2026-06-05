@@ -11,15 +11,15 @@ export interface ButtonProps
 
 const variantClasses: Record<NonNullable<ButtonProps["variant"]>, string> = {
   default:
-    "bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500",
+    "bg-pastel-blue text-black hover:bg-blue-300",
   destructive:
-    "bg-red-600 text-white hover:bg-red-700 focus:ring-red-500",
+    "bg-pastel-pink text-black hover:bg-red-300",
   outline:
-    "border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 focus:ring-gray-400",
+    "bg-paper text-black hover:bg-gray-100",
   ghost:
-    "bg-transparent text-gray-700 hover:bg-gray-100 focus:ring-gray-400",
+    "bg-transparent text-gray-700 hover:bg-gray-100 border-transparent shadow-none",
   link:
-    "bg-transparent text-blue-600 underline-offset-4 hover:underline focus:ring-blue-500",
+    "bg-transparent text-blue-600 underline-offset-4 hover:underline border-transparent shadow-none",
 };
 
 const sizeClasses: Record<NonNullable<ButtonProps["size"]>, string> = {
@@ -45,8 +45,9 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       <Comp
         ref={ref}
         className={cn(
-          "inline-flex items-center justify-center rounded-lg font-semibold",
-          "shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2",
+          "inline-flex items-center justify-center rounded-doodle font-semibold",
+          "border-doodle shadow-doodle transition-all focus:outline-none focus:ring-2 focus:ring-offset-2",
+          "active:translate-y-[4px] active:shadow-none hover:translate-y-[-2px] hover:shadow-[4px_6px_0px_0px_rgba(0,0,0,1)]",
           "disabled:opacity-60 disabled:cursor-not-allowed",
           variantClasses[variant],
           sizeClasses[size],

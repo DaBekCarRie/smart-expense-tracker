@@ -57,11 +57,13 @@ export async function getCategories(): Promise<Category[]> {
 
 export async function createCategory(
   name: string,
-  color: string
+  color: string,
+  icon?: string | null
 ): Promise<Category> {
   const response = await apiClient.post<Category>("/api/v1/categories", {
     name,
     color,
+    icon,
   });
   return response.data;
 }

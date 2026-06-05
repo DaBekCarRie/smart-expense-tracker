@@ -9,6 +9,7 @@ export interface Category {
   id: number;
   name: string;
   color: string;
+  icon: string | null;
 }
 
 export interface Expense {
@@ -36,6 +37,7 @@ export interface OCRResult {
   confidence: number;
   cached: boolean;
   processing_time_ms: number;
+  receipt_url?: string | null;
 }
 
 export interface CursorPage<T> {
@@ -58,6 +60,7 @@ export interface ExpenseCreate {
   expense_date: string;
   category_id?: number | null;
   notes?: string | null;
+  receipt_url?: string | null;
 }
 
 export interface ExpenseUpdate {

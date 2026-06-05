@@ -18,6 +18,7 @@ class Settings(BaseSettings):
 
     OCR_PROVIDER: str = "tesseract"
     OPENAI_API_KEY: str = ""
+    GEMINI_API_KEY: str = ""
     CORS_ORIGINS: list[str] = ["http://localhost:3000"]
     COOKIE_SECURE: bool = False  # set True in production (HTTPS)
 
@@ -29,6 +30,14 @@ class Settings(BaseSettings):
             object.__setattr__(self, "SECRET_KEY", self.JWT_SECRET)
         if not self.ALGORITHM:
             object.__setattr__(self, "ALGORITHM", self.JWT_ALGORITHM)
+
+        # Convert standard Postgres connection URLs to asyncpg format
+        db_url = self.DATABASE_URL
+        if db_url.startswith("postgres://"):
+            db_url = db_url.replace("postgres://", "postgresql+asyncpg://", 1)
+        elif db_url.startswith("postgresql://") and not db_url.startswith("postgresql+asyncpg://"):
+            db_url = db_url.replace("postgresql://", "postgresql+asyncpg://", 1)
+        object.__setattr__(self, "DATABASE_URL", db_url)
 
 
 settings = Settings()
