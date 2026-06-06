@@ -27,6 +27,7 @@ from app.services.auth_service import (
     hash_password,
     verify_password,
 )
+from app.utils.email import send_reset_password_email
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -163,10 +164,14 @@ async def forgot_password(
     # Save token in redis with TTL of 15 minutes (900 seconds)
     await redis.setex(f"reset_token:{token}", 900, str(user.id))
 
-    # Log reset link to stdout
+    # Send real SMTP email if SMTP is configured
+    email_sent = await send_reset_password_email(user.email, token)
+
+    # Log reset link to stdout as fallback/development visibility
     print(
         f"\n========================================\n"
-        f"[RESET LINK] http://localhost:3000/reset-password?token={token}\n"
+        f"[RESET LINK] {settings.FRONTEND_URL}/reset-password?token={token}\n"
+        f"Email sent successfully: {email_sent}\n"
         f"========================================\n",
         flush=True,
     )
