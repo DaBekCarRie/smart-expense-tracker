@@ -14,3 +14,15 @@ out/
 # Misc
 .DS_Store
 backend/uploads/
+
+# Claude Code
+.agents/
+skills-lock.json
+
+# Debug / scratch scripts
+backend/inspect_*.py
+backend/test_*.py
+
+# Local planning files
+*.html
+!frontend/**/*.html
