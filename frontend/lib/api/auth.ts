@@ -32,3 +32,27 @@ export async function getMe(): Promise<User> {
   const response = await apiClient.get<User>("/api/v1/auth/me");
   return response.data;
 }
+
+export async function updateProfile(data: {
+  name?: string;
+  current_password?: string;
+  new_password?: string;
+}): Promise<User> {
+  const response = await apiClient.put<User>("/api/v1/auth/profile", data);
+  return response.data;
+}
+
+export async function forgotPassword(email: string): Promise<void> {
+  await apiClient.post("/api/v1/auth/forgot-password", { email });
+}
+
+export async function resetPassword(
+  token: string,
+  newPassword: string
+): Promise<void> {
+  await apiClient.post("/api/v1/auth/reset-password", {
+    token,
+    new_password: newPassword,
+  });
+}
+

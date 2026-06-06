@@ -8,9 +8,18 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 from app.database import get_db
-from app.dependencies import get_current_user
+from app.dependencies import get_current_user, get_redis
 from app.models.user import User
-from app.schemas.user import TokenResponse, UserCreate, UserLogin, UserOut
+from app.schemas.user import (
+    TokenResponse,
+    UserCreate,
+    UserLogin,
+    UserOut,
+    ProfileUpdate,
+    ForgotPasswordRequest,
+    ResetPasswordRequest,
+)
+from redis.asyncio import Redis
 from app.services.auth_service import (
     create_access_token,
     create_refresh_token,
@@ -108,3 +117,92 @@ async def logout(response: Response):
 @router.get("/me", response_model=UserOut)
 async def me(current_user: User = Depends(get_current_user)):
     return UserOut.model_validate(current_user)
+
+
+@router.put("/profile", response_model=UserOut)
+async def update_profile(
+    body: ProfileUpdate,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    if body.name is not None:
+        current_user.name = body.name
+
+    if body.new_password is not None:
+        if not body.current_password:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Current password is required to set a new password",
+            )
+        if not verify_password(body.current_password, current_user.password_hash):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid current password",
+            )
+        current_user.password_hash = hash_password(body.new_password)
+
+    db.add(current_user)
+    await db.commit()
+    await db.refresh(current_user)
+    return current_user
+
+
+@router.post("/forgot-password")
+async def forgot_password(
+    body: ForgotPasswordRequest,
+    db: AsyncSession = Depends(get_db),
+    redis: Redis = Depends(get_redis),
+):
+    result = await db.execute(select(User).where(User.email == body.email))
+    user = result.scalar_one_or_none()
+    if not user:
+        # Return success to prevent email enumeration
+        return {"message": "If the email exists, a reset link will be sent/logged."}
+
+    token = str(uuid.uuid4())
+    # Save token in redis with TTL of 15 minutes (900 seconds)
+    await redis.setex(f"reset_token:{token}", 900, str(user.id))
+
+    # Log reset link to stdout
+    print(
+        f"\n========================================\n"
+        f"[RESET LINK] http://localhost:3000/reset-password?token={token}\n"
+        f"========================================\n",
+        flush=True,
+    )
+
+    return {"message": "If the email exists, a reset link will be sent/logged."}
+
+
+@router.post("/reset-password")
+async def reset_password(
+    body: ResetPasswordRequest,
+    db: AsyncSession = Depends(get_db),
+    redis: Redis = Depends(get_redis),
+):
+    redis_key = f"reset_token:{body.token}"
+    user_id_str = await redis.get(redis_key)
+    if not user_id_str:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired reset token",
+        )
+
+    user_id = uuid.UUID(
+        user_id_str.decode("utf-8") if isinstance(user_id_str, bytes) else user_id_str
+    )
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="User not found",
+        )
+
+    user.password_hash = hash_password(body.new_password)
+    db.add(user)
+    await db.commit()
+    await redis.delete(redis_key)
+
+    return {"message": "Password updated successfully"}
+
