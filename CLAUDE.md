@@ -241,3 +241,17 @@ Agents communicate using these tags — Orchestrator must watch for them:
 | `🔴 NEEDS_FRONTEND: ...` | Backend needs UI clarification | Relay to Frontend Agent |
 | `🟡 BLOCKED: ...` | Agent is stuck | Resolve blocker, re-delegate |
 | `🐛 BUG [ID]` | QA found a bug | Re-delegate fix to responsible agent |
+
+---
+
+## 🌐 i18n Rule
+
+**Whenever adding new UI text to any frontend file**, you MUST:
+
+1. Add the key to `frontend/lib/i18n/types.ts` (`TranslationDictionary`)
+2. Add the English value to `frontend/lib/i18n/en.ts`
+3. Add the Thai value to `frontend/lib/i18n/th.ts`
+4. Use `{t.yourKey}` in the component — never hardcode strings directly in JSX
+
+Pages that already use `useTranslation`: all pages under `(dashboard)/` and `(auth)/`, plus `ExpenseList.tsx`.
+New pages must import and call `useTranslation` at the top of the component.

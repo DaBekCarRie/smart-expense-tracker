@@ -35,26 +35,24 @@ export default function CategoryBreakdownChart({
     categories.map((c) => [c.id, c])
   );
 
-  // Sum amounts per category
+  // Sum item prices per item-level category
   const totals = new Map<string, ChartEntry>();
 
   for (const expense of expenses) {
-    const key =
-      expense.category_id !== null
-        ? String(expense.category_id)
-        : "uncategorized";
-    const category = expense.category_id !== null
-      ? categoryMap.get(expense.category_id)
-      : undefined;
-    const name = category?.name ?? "Uncategorized";
-    const color = category?.color ?? UNCATEGORIZED_COLOR;
-    const icon = category?.icon ?? null;
+    for (const item of expense.items ?? []) {
+      const key = item.category_id != null ? String(item.category_id) : "uncategorized";
+      const category = item.category_id != null ? categoryMap.get(item.category_id) : undefined;
+      const name = category?.name ?? "Uncategorized";
+      const color = category?.color ?? UNCATEGORIZED_COLOR;
+      const icon = category?.icon ?? null;
+      const itemAmount = Number(item.price);
 
-    const existing = totals.get(key);
-    if (existing) {
-      existing.value += expense.amount;
-    } else {
-      totals.set(key, { name, value: expense.amount, color, icon });
+      const existing = totals.get(key);
+      if (existing) {
+        existing.value += itemAmount;
+      } else {
+        totals.set(key, { name, value: itemAmount, color, icon });
+      }
     }
   }
 

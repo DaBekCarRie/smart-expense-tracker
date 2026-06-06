@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useState, type FormEvent, useRef } from "react";
 import { useCategories, useCreateCategory } from "@/lib/hooks/useExpenses";
 import { useQueryClient } from "@tanstack/react-query";
 import apiClient from "@/lib/api/client";
@@ -26,9 +26,12 @@ import {
   Trash2,
   X,
   Check,
+  Sparkles,
+  Upload,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 const DEFAULT_COLORS = [
   "#b5d8f7", // pastel blue
@@ -42,47 +45,50 @@ const DEFAULT_COLORS = [
 ];
 
 const ICON_OPTIONS = [
-  "Tag",
-  "ShoppingBag",
-  "Utensils",
-  "Car",
-  "Home",
-  "Briefcase",
-  "Heart",
-  "Zap",
-  "Music",
-  "Film",
-  "Coffee",
-  "Plane",
-  "Gift",
-  "Smartphone",
-  "Laptop",
-  "Dumbbell",
+  "Tag", "ShoppingBag", "Utensils", "Car", "Home", "Briefcase", "Heart", "Zap",
+  "Music", "Film", "Coffee", "Plane", "Gift", "Smartphone", "Laptop", "Dumbbell"
 ];
 
 const ICON_MAP: Record<string, LucideIcon> = {
-  Tag,
-  ShoppingBag,
-  Utensils,
-  Car,
-  Home,
-  Briefcase,
-  Heart,
-  Zap,
-  Music,
-  Film,
-  Coffee,
-  Plane,
-  Gift,
-  Smartphone,
-  Laptop,
-  Dumbbell,
+  Tag, ShoppingBag, Utensils, Car, Home, Briefcase, Heart, Zap,
+  Music, Film, Coffee, Plane, Gift, Smartphone, Laptop, Dumbbell,
 };
 
+function IconPreview({
+  name,
+  className,
+}: {
+  name: string | null;
+  className?: string;
+}) {
+  const [imgError, setImgError] = useState(false);
+  
+  if (!name) return <Tag className={className} strokeWidth={2.5} />;
+  
+  // Check if it's a URL (starts with / or http)
+  if ((name.startsWith("/") || name.startsWith("http")) && !imgError) {
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+    const fullUrl = name.startsWith("/") ? `${baseUrl}${name}` : name;
+    return (
+      <img 
+        src={fullUrl} 
+        alt="icon" 
+        className={cn("object-contain w-full h-full", className)} 
+        onError={() => setImgError(true)}
+      />
+    );
+  }
+
+  const Icon = ICON_MAP[name] || Tag;
+  return <Icon className={className} strokeWidth={2.5} />;
+}
+
 export default function CategoriesPage() {
+  const { t, locale } = useTranslation();
   const queryClient = useQueryClient();
   const { data: categories, isLoading } = useCategories();
   const createCategory = useCreateCategory();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [newName, setNewName] = useState("");
   const [newColor, setNewColor] = useState(DEFAULT_COLORS[0]);
@@ -96,13 +102,15 @@ export default function CategoriesPage() {
 
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null);
+  const [isSeeding, setIsSeeding] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
 
   async function handleCreate(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setFormError(null);
     const name = newName.trim();
     if (!name) {
-      setFormError("Category name is required.");
+      setFormError(t.required);
       return;
     }
     try {
@@ -111,8 +119,7 @@ export default function CategoriesPage() {
       setNewColor(DEFAULT_COLORS[0]);
       setNewIcon(ICON_OPTIONS[0]);
     } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : "Failed to create category.";
+      const message = err instanceof Error ? err.message : t.error;
       setFormError(message);
     }
   }
@@ -132,7 +139,7 @@ export default function CategoriesPage() {
       await queryClient.invalidateQueries({ queryKey: ["categories"] });
       setEditingId(null);
     } catch {
-      setFormError("Failed to update category.");
+      setFormError(t.error);
     }
   }
 
@@ -161,46 +168,92 @@ export default function CategoriesPage() {
       await apiClient.delete(`/api/v1/categories/${id}`);
       await queryClient.invalidateQueries({ queryKey: ["categories"] });
     } catch {
-      setFormError("Failed to delete category.");
+      setFormError(t.error);
     } finally {
       setDeletingId(null);
     }
   }
 
-  function IconPreview({
-    name,
-    className,
-  }: {
-    name: string;
-    className?: string;
-  }) {
-    const Icon = ICON_MAP[name] || Tag;
-    return <Icon className={className} strokeWidth={2.5} />;
+  async function handleSeed() {
+    setIsSeeding(true);
+    setFormError(null);
+    try {
+      await apiClient.post(`/api/v1/categories/seed?locale=${locale}`);
+      await queryClient.invalidateQueries({ queryKey: ["categories"] });
+    } catch {
+      setFormError(t.error);
+    } finally {
+      setIsSeeding(false);
+    }
   }
 
+  async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    setFormError(null);
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const res = await apiClient.post("/api/v1/categories/upload-icon", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      const iconUrl = res.data.icon_url;
+      if (editingId !== null) {
+        setEditIcon(iconUrl);
+      } else {
+        setNewIcon(iconUrl);
+      }
+    } catch (err: unknown) {
+      const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      setFormError(detail || t.error);
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  }
+
+  const filteredIcons = ICON_OPTIONS;
+
   return (
-    <div className="max-w-4xl space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold text-black tracking-tight">
-          Categories
-        </h1>
-        <p className="text-base font-bold text-gray-600 mt-1">
-          Organise your expenses with colour-coded categories and icons
-        </p>
+    <div className="max-w-5xl mx-auto space-y-8">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-black tracking-tight">
+            {t.categoriesTitle}
+          </h1>
+          <p className="text-base font-bold text-gray-600 mt-1">
+            {t.categoriesDescription}
+          </p>
+        </div>
+
+        {(!categories || categories.length === 0) && !isLoading && (
+          <button
+            onClick={handleSeed}
+            disabled={isSeeding}
+            className="flex items-center gap-2 px-4 py-2 rounded-doodle bg-pastel-yellow border-doodle shadow-doodle font-bold text-black hover:bg-yellow-300 transition-all active:translate-y-[2px] active:shadow-none"
+          >
+            <Sparkles className="w-4 h-4" />
+            {isSeeding ? t.categoriesSettingUp : t.categoriesSetupDefault}
+          </button>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         {/* Left Column: Form */}
         <div className="lg:col-span-5 space-y-6">
-          <div className="bg-white rounded-doodle border-doodle shadow-doodle p-6 sticky top-6">
+          <div className="bg-paper rounded-doodle border-doodle shadow-doodle p-6 sticky top-6">
             <h2 className="text-xl font-bold text-black mb-6 tracking-wide flex items-center gap-2">
               {editingId ? (
                 <>
-                  <Pencil className="w-5 h-5" /> Edit Category
+                  <Pencil className="w-5 h-5" /> {t.categoriesEdit} {t.categoriesTitle}
                 </>
               ) : (
                 <>
-                  <Tag className="w-5 h-5" /> Add Category
+                  <Tag className="w-5 h-5" /> {t.categoriesAddNew}
                 </>
               )}
             </h2>
@@ -215,7 +268,7 @@ export default function CategoriesPage() {
                   htmlFor="cat-name"
                   className="block text-sm font-bold text-black mb-1.5"
                 >
-                  Category Name
+                  {t.categoriesCategoryName}
                 </label>
                 <input
                   id="cat-name"
@@ -228,25 +281,16 @@ export default function CategoriesPage() {
                   }
                   placeholder="e.g. Food & Drink"
                   autoComplete="off"
-                  className="w-full rounded-doodle border-doodle bg-white px-4 py-2.5 text-base font-sans shadow-doodle-sm focus:outline-none focus:border-black focus:ring-0 focus:bg-paper transition-all placeholder:text-gray-400"
+                  className="w-full rounded-doodle border-doodle bg-paper px-4 py-2.5 text-base font-sans shadow-doodle-sm focus:outline-none focus:border-black focus:ring-0 focus:bg-paper transition-all placeholder:text-gray-400"
                   disabled={createCategory.isPending}
                 />
               </div>
 
               <div className="space-y-3">
                 <label className="block text-sm font-bold text-black">
-                  Colour & Icon
+                  {t.categoriesColorLabel}
                 </label>
                 <div className="flex items-center gap-4">
-                  <div
-                    className="w-12 h-12 rounded-doodle border-2 border-black flex items-center justify-center shadow-doodle-sm shrink-0"
-                    style={{ backgroundColor: editingId ? editColor : newColor }}
-                  >
-                    <IconPreview
-                      name={editingId ? editIcon : newIcon}
-                      className="w-6 h-6 text-black"
-                    />
-                  </div>
                   <input
                     type="color"
                     value={editingId ? editColor : newColor}
@@ -255,7 +299,7 @@ export default function CategoriesPage() {
                         ? setEditColor(e.target.value)
                         : setNewColor(e.target.value)
                     }
-                    className="h-10 w-16 rounded-doodle border-doodle shadow-doodle-sm cursor-pointer p-1 bg-white shrink-0"
+                    className="h-10 w-16 rounded-doodle border-doodle shadow-doodle-sm cursor-pointer p-1 bg-paper shrink-0"
                   />
                   <div className="flex flex-wrap gap-2">
                     {DEFAULT_COLORS.slice(0, 4).map((c) => (
@@ -278,6 +322,41 @@ export default function CategoriesPage() {
                 </div>
               </div>
 
+              <div className="space-y-3">
+                <label className="block text-sm font-bold text-black">
+                  {t.categoriesIconLabel}
+                </label>
+                
+                <div className="flex items-center gap-4">
+                  <div
+                    className="w-12 h-12 rounded-doodle border-2 border-black flex items-center justify-center shadow-doodle-sm shrink-0 bg-paper overflow-hidden"
+                  >
+                    <IconPreview
+                      name={editingId ? editIcon : newIcon}
+                      className="w-6 h-6 text-black"
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      ref={fileInputRef}
+                      onChange={handleFileUpload}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={isUploading}
+                      className="flex items-center justify-center gap-2 w-full px-3 py-2 rounded-doodle border-2 border-black bg-paper shadow-doodle-sm hover:bg-paper/50 transition-all font-bold text-xs"
+                    >
+                      <Upload className="w-3.5 h-3.5" />
+                      {isUploading ? t.categoriesUploading : t.categoriesUploadIcon}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
               <div className="space-y-2">
                 <div className="grid grid-cols-4 sm:grid-cols-8 lg:grid-cols-4 gap-2.5 p-3 rounded-doodle border-doodle bg-paper shadow-doodle-sm">
                   {ICON_OPTIONS.map((iconName) => (
@@ -290,7 +369,7 @@ export default function CategoriesPage() {
                       className={cn(
                         "flex items-center justify-center p-2 rounded-doodle border-2 transition-all",
                         (editingId ? editIcon : newIcon) === iconName
-                          ? "bg-white border-black shadow-doodle-sm translate-y-[-1px]"
+                          ? "bg-paper border-black shadow-doodle-sm translate-y-[-1px]"
                           : "bg-transparent border-transparent text-gray-500 hover:text-black"
                       )}
                       title={iconName}
@@ -315,15 +394,15 @@ export default function CategoriesPage() {
                       : "bg-pastel-blue hover:bg-blue-300"
                   )}
                 >
-                  {editingId ? "Update Category" : "Add Category"}
+                  {editingId ? t.categoriesUpdateButton : t.categoriesAddNew}
                 </button>
                 {editingId && (
                   <button
                     type="button"
                     onClick={() => setEditingId(null)}
-                    className="w-full px-6 py-2 rounded-doodle bg-white text-base font-bold text-gray-600 border-doodle hover:bg-paper transition-all"
+                    className="w-full px-6 py-2 rounded-doodle bg-paper text-base font-bold text-gray-600 border-doodle hover:bg-paper transition-all"
                   >
-                    Cancel Edit
+                    {t.categoriesCancelEdit}
                   </button>
                 )}
               </div>
@@ -339,7 +418,7 @@ export default function CategoriesPage() {
 
         {/* Right Column: List */}
         <div className="lg:col-span-7 space-y-4">
-          <div className="bg-white rounded-doodle border-doodle shadow-doodle overflow-hidden">
+          <div className="bg-paper rounded-doodle border-doodle shadow-doodle overflow-hidden">
             {isLoading ? (
               <div className="divide-y-2 divide-black">
                 {[1, 2, 3, 4].map((i) => (
@@ -359,8 +438,8 @@ export default function CategoriesPage() {
             ) : (categories ?? []).length === 0 ? (
               <div className="px-6 py-16 text-center">
                 <Tag className="w-12 h-12 text-gray-300 mx-auto mb-4" strokeWidth={1.5} />
-                <p className="text-xl font-bold text-gray-500">No categories yet</p>
-                <p className="text-sm text-gray-400 mt-1">Add your first one to get started!</p>
+                <p className="text-xl font-bold text-gray-500">{t.categoriesNoneYet}</p>
+                <p className="text-sm text-gray-400 mt-1">{t.categoriesGetStarted}</p>
               </div>
             ) : (
               <ul className="divide-y-2 divide-black">
@@ -373,7 +452,7 @@ export default function CategoriesPage() {
                     )}
                   >
                     <div
-                      className="w-12 h-12 rounded-doodle border-2 border-black flex items-center justify-center shadow-doodle-sm flex-shrink-0 group-hover:scale-105 transition-transform"
+                      className="w-12 h-12 rounded-doodle border-2 border-black flex items-center justify-center shadow-doodle-sm flex-shrink-0 group-hover:scale-105 transition-transform bg-paper overflow-hidden"
                       style={{ backgroundColor: cat.color }}
                     >
                       <IconPreview
@@ -403,7 +482,7 @@ export default function CategoriesPage() {
                           </button>
                           <button
                             onClick={() => setPendingDeleteId(null)}
-                            className="p-2 text-black hover:bg-white rounded-doodle transition-colors"
+                            className="p-2 text-black hover:bg-paper rounded-doodle transition-colors"
                             title="Cancel"
                           >
                             <X className="w-5 h-5" />

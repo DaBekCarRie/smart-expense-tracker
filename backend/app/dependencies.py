@@ -21,10 +21,7 @@ async def get_current_user(
     db: AsyncSession = Depends(get_db),
 ):
     from app.models.user import User
-    from sqlalchemy import select
-    import uuid
 
-    # 1. Try to authenticate real user if access_token cookie is present
     if access_token:
         try:
             payload = decode_token(access_token)
@@ -35,22 +32,9 @@ async def get_current_user(
                 if user:
                     return user
         except Exception:
-            # If token is invalid/expired, fall back to mock user or raise 401
             pass
 
-    # 2. FALLBACK MOCK USER FOR DEVELOPMENT (Disables login requirement)
-    result = await db.execute(select(User).limit(1))
-    user = result.scalar_one_or_none()
-    
-    if not user:
-        user = User(
-            id=uuid.uuid4(),
-            email="mock@example.com",
-            password_hash="mock",
-            name="Mock User"
-        )
-        db.add(user)
-        await db.commit()
-        await db.refresh(user)
-
-    return user
+    raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Not authenticated",
+    )

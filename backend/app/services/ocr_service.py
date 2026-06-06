@@ -63,9 +63,12 @@ class OCRService:
             logger.debug("OCR cache HIT — key=%s", cache_key)
             try:
                 data = json.loads(cached_raw)
-                result = OCRResult(**data)
-                result = result.model_copy(update={"cached": True})
-                return result
+                if "items" not in data:
+                    logger.info("Outdated cache record (missing 'items' key) — bypassing cache")
+                else:
+                    result = OCRResult(**data)
+                    result = result.model_copy(update={"cached": True})
+                    return result
             except Exception as exc:  # noqa: BLE001
                 logger.warning(
                     "Cache deserialisation failed (%s) — re-running OCR", exc
@@ -103,7 +106,7 @@ def build_ocr_service() -> OCRService:
         from app.ocr.gemini_vision import GeminiVisionProvider
 
         provider: OCRProvider = GeminiVisionProvider(api_key=settings.GEMINI_API_KEY)
-        logger.info("OCR provider: GeminiVisionProvider (gemini-2.5-flash)")
+        logger.info("OCR provider: GeminiVisionProvider (gemini-3.1-flash-lite)")
     elif settings.OPENAI_API_KEY or settings.OCR_PROVIDER == "openai":
         from app.ocr.openai_vision import OpenAIVisionProvider
 

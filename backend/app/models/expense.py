@@ -36,11 +36,8 @@ class Expense(Base):
     )
 
     user: Mapped[User] = relationship("User", back_populates="expenses")
-    category: Mapped[Category | None] = relationship("Category", back_populates="expenses")
     items = relationship("ExpenseItem", back_populates="expense", cascade="all, delete-orphan")
 
-    # ⭐ OPTIMIZATION 3: compound index enables fast user+date range queries
     __table_args__ = (
         Index("idx_expenses_user_date", "user_id", text("expense_date DESC")),
-        Index("idx_expenses_user_category", "user_id", "category_id"),
     )

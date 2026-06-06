@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useExpenses, useDeleteExpense, useCategories, useCreateExpense } from "@/lib/hooks/useExpenses";
 import { ExpenseList } from "@/components/expenses/ExpenseList";
 import { ExpenseFilter } from "@/components/expenses/ExpenseFilter";
@@ -13,7 +14,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { ExpenseCreate, ExpenseFilters } from "@/types";
+import type { ExpenseCreate, ExpenseFilters, OCRResult } from "@/types";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
 
 const CURRENCIES = ["USD", "EUR", "GBP", "THB", "JPY", "SGD", "AUD", "CAD"];
 
@@ -22,6 +24,7 @@ function today() {
 }
 
 export default function ExpensesPage() {
+  const { t, locale } = useTranslation();
   const [filters, setFilters] = useState<ExpenseFilters>({ limit: 50 });
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 
@@ -58,23 +61,12 @@ export default function ExpensesPage() {
   }
 
   /** Called when ReceiptUploader extracts OCR data — pre-fills the form. */
-  function handleOCRApply(data: Partial<ExpenseCreate & { category: string | null }>) {
-    if (data.merchant) setMerchant(data.merchant);
-    if (data.amount !== undefined) setAmount(String(data.amount));
-    if (data.currency) setCurrency(data.currency);
-    if (data.expense_date) setExpenseDate(data.expense_date);
-    if (data.receipt_url) setReceiptUrl(data.receipt_url);
-    
-    // Smart categorization: match suggested category name to existing ID
-    if (data.category && categories) {
-      const match = categories.find(
-        (c) => c.name.toLowerCase() === data.category?.toLowerCase()
-      );
-      if (match) {
-        setCategoryId(String(match.id));
-      }
-    }
-
+  function handleOCRApply(result: OCRResult) {
+    if (result.merchant) setMerchant(result.merchant);
+    if (result.amount !== undefined && result.amount !== null) setAmount(String(result.amount));
+    if (result.currency) setCurrency(result.currency);
+    if (result.expense_date) setExpenseDate(result.expense_date);
+    if (result.receipt_url) setReceiptUrl(result.receipt_url);
     setShowForm(true);
   }
 
@@ -93,7 +85,6 @@ export default function ExpensesPage() {
       amount: parsedAmount,
       currency,
       expense_date: expenseDate,
-      category_id: categoryId !== "none" ? Number(categoryId) : null,
       notes: notes.trim() || null,
       receipt_url: receiptUrl,
     };
@@ -119,175 +110,27 @@ export default function ExpensesPage() {
   const isSubmitting = createExpense.isPending;
 
   return (
-    <div className="space-y-6">
+    <div className="max-w-5xl mx-auto space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-black tracking-wide">Expenses</h1>
+          <h1 className="text-2xl font-bold text-black tracking-wide">{t.expensesTitle}</h1>
           {!isLoading && (
             <p className="text-sm font-bold text-gray-600 mt-0.5">
-              {total} expense{total !== 1 ? "s" : ""}
+              {locale === "th" ? `${total} รายการ` : `${total} expense${total !== 1 ? "s" : ""}`}
             </p>
           )}
         </div>
-        <button
-          onClick={() => setShowForm((v) => !v)}
-          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-doodle border-doodle shadow-doodle bg-pastel-blue text-base font-bold text-black hover:bg-blue-300 hover:translate-y-[-2px] hover:shadow-[4px_6px_0px_0px_rgba(0,0,0,1)] active:translate-y-[2px] active:shadow-none focus:outline-none transition-all"
+        <Link
+          href="/expenses/new"
+          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-doodle border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] bg-pastel-blue text-base font-bold text-black hover:bg-blue-300 hover:translate-y-[-2px] hover:shadow-[4px_6px_0px_0px_rgba(0,0,0,1)] active:translate-y-[2px] active:shadow-none focus:outline-none transition-all"
         >
           <svg className="w-5 h-5 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5}
-              d={showForm ? "M6 18L18 6M6 6l12 12" : "M12 4v16m8-8H4"} />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
           </svg>
-          {showForm ? "Cancel" : "Add expense"}
-        </button>
+          {t.expensesAddNew}
+        </Link>
       </div>
-
-      {/* Add expense panel (Receipt Uploader + manual form) */}
-      {showForm && (
-        <div className="bg-paper rounded-doodle border-doodle p-6 shadow-doodle space-y-6">
-          {/* Receipt Upload */}
-          <div>
-            <h2 className="text-lg font-bold text-black tracking-wide mb-3">
-              Scan a receipt <span className="text-gray-500 font-normal font-sans text-sm">(optional)</span>
-            </h2>
-            <ReceiptUploader onApply={handleOCRApply} />
-          </div>
-
-          <hr className="border-t-2 border-black border-dashed" />
-
-          {/* Manual / pre-filled form */}
-          <div>
-            <h2 className="text-lg font-bold text-black tracking-wide mb-4">Expense details</h2>
-            <form onSubmit={handleSubmit} noValidate className="space-y-5">
-              {/* Merchant */}
-              <div>
-                <label htmlFor="exp-merchant" className="block text-sm font-bold text-black mb-1">
-                  Merchant <span className="text-red-600">*</span>
-                </label>
-                <input
-                  id="exp-merchant"
-                  type="text"
-                  required
-                  value={merchant}
-                  onChange={(e) => setMerchant(e.target.value)}
-                  placeholder="e.g. Starbucks"
-                  disabled={isSubmitting}
-                  className="w-full rounded-doodle-input border-doodle-input bg-white px-3 py-2 text-sm font-sans shadow-doodle-sm focus:outline-none focus:ring-0 focus:bg-[#fffdf0] disabled:opacity-50 transition-colors placeholder:text-gray-500"
-                />
-              </div>
-
-              {/* Amount + Currency */}
-              <div className="flex gap-4">
-                <div className="flex-1">
-                  <label htmlFor="exp-amount" className="block text-sm font-bold text-black mb-1">
-                    Amount <span className="text-red-600">*</span>
-                  </label>
-                  <input
-                    id="exp-amount"
-                    type="number"
-                    required
-                    min="0.01"
-                    step="0.01"
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
-                    placeholder="0.00"
-                    disabled={isSubmitting}
-                    className="w-full rounded-doodle-input border-doodle-input bg-white px-3 py-2 text-sm font-sans shadow-doodle-sm focus:outline-none focus:ring-0 focus:bg-[#fffdf0] disabled:opacity-50 transition-colors placeholder:text-gray-500"
-                  />
-                </div>
-                <div className="w-32">
-                  <label htmlFor="exp-currency" className="block text-sm font-bold text-black mb-1">
-                    Currency
-                  </label>
-                  <Select
-                    value={currency}
-                    onValueChange={setCurrency}
-                    disabled={isSubmitting}
-                  >
-                    <SelectTrigger id="exp-currency">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {CURRENCIES.map((c) => (
-                        <SelectItem key={c} value={c}>
-                          {c}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              {/* Date */}
-              <div>
-                <label htmlFor="exp-date" className="block text-sm font-bold text-black mb-1">
-                  Date <span className="text-red-600">*</span>
-                </label>
-                <DateInput
-                  id="exp-date"
-                  value={expenseDate}
-                  onChange={setExpenseDate}
-                  disabled={isSubmitting}
-                />
-              </div>
-
-              {/* Category */}
-              <div>
-                <label htmlFor="exp-category" className="block text-sm font-bold text-black mb-1">
-                  Category
-                </label>
-                <Select
-                  value={categoryId}
-                  onValueChange={setCategoryId}
-                  disabled={isSubmitting}
-                >
-                  <SelectTrigger id="exp-category">
-                    <SelectValue placeholder="No category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">No category</SelectItem>
-                    {(categories ?? []).map((cat) => (
-                      <SelectItem key={cat.id} value={String(cat.id)}>
-                        {cat.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Notes */}
-              <div>
-                <label htmlFor="exp-notes" className="block text-sm font-bold text-black mb-1">
-                  Notes
-                </label>
-                <textarea
-                  id="exp-notes"
-                  rows={2}
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Optional notes…"
-                  disabled={isSubmitting}
-                  className="w-full rounded-doodle-input border-doodle-input bg-white px-3 py-2 text-sm font-sans shadow-doodle-sm focus:outline-none focus:ring-0 focus:bg-[#fffdf0] resize-none disabled:opacity-50 transition-colors placeholder:text-gray-500"
-                />
-              </div>
-
-              {formError && (
-                <div className="rounded-doodle bg-pastel-pink border-doodle shadow-doodle-sm px-4 py-3 text-sm font-bold text-black">
-                  {formError}
-                </div>
-              )}
-
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full rounded-doodle bg-pastel-blue px-4 py-2.5 text-base font-bold text-black shadow-doodle border-doodle hover:bg-blue-300 hover:translate-y-[-2px] hover:shadow-[4px_6px_0px_0px_rgba(0,0,0,1)] active:translate-y-[2px] active:shadow-none focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed transition-all"
-              >
-                {isSubmitting ? "Saving…" : "Save expense"}
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
 
       {/* Filters */}
       <ExpenseFilter
@@ -318,7 +161,7 @@ export default function ExpensesPage() {
             }
             className="text-base font-bold text-black hover:underline decoration-2 underline-offset-4"
           >
-            Load more
+            {t.expensesLoadMore}
           </button>
         </div>
       )}

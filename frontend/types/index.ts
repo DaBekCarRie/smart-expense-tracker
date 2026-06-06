@@ -19,13 +19,21 @@ export interface Expense {
   amount: number; // Decimal serialized as string from backend — parse on receipt
   currency: string;
   expense_date: string; // ISO date string
-  category_id: number | null;
-  category?: Category;
   notes: string | null;
   receipt_url: string | null;
   ocr_raw: Record<string, unknown> | null;
   ocr_confidence: number | null;
   created_at: string;
+  items?: ExpenseItemOut[];
+}
+
+export interface OCRItem {
+  name: string;
+  quantity: number;
+  unit: string | null;
+  price: number | null;
+  unit_price: number | null;
+  category?: string | null;
 }
 
 export interface OCRResult {
@@ -38,6 +46,7 @@ export interface OCRResult {
   cached: boolean;
   processing_time_ms: number;
   receipt_url?: string | null;
+  items?: OCRItem[];
 }
 
 export interface CursorPage<T> {
@@ -53,14 +62,38 @@ export interface TokenResponse {
   user: User;
 }
 
+export interface ExpenseItemCreate {
+  name: string;
+  quantity: number;
+  unit: string | null;
+  price: number;
+  unit_price: number;
+  expiry_date: string | null;
+  category_id?: number | null;
+}
+
+export interface ExpenseItemOut {
+  id: string;
+  expense_id: string;
+  name: string;
+  quantity: number;
+  unit: string | null;
+  price: number;
+  unit_price: number;
+  expiry_date: string | null;
+  category_id?: number | null;
+  category?: Category;
+  has_inventory: boolean;
+}
+
 export interface ExpenseCreate {
   merchant: string;
   amount: number;
   currency: string;
   expense_date: string;
-  category_id?: number | null;
   notes?: string | null;
   receipt_url?: string | null;
+  items?: ExpenseItemCreate[];
 }
 
 export interface ExpenseUpdate {
@@ -68,8 +101,17 @@ export interface ExpenseUpdate {
   amount?: number;
   currency?: string;
   expense_date?: string;
-  category_id?: number | null;
   notes?: string | null;
+}
+
+export interface ExpenseItemUpdate {
+  name?: string;
+  quantity?: number;
+  unit?: string | null;
+  price?: number;
+  unit_price?: number;
+  expiry_date?: string | null;
+  category_id?: number | null;
 }
 
 export interface ExpenseFilters {
@@ -79,6 +121,37 @@ export interface ExpenseFilters {
   date_to?: string;
   cursor?: string;
   limit?: number;
+}
+
+export interface StockBatch {
+  id: string;
+  quantity: number;
+  expiry_date: string | null;
+  created_at: string;
+}
+
+export interface Product {
+  id: string;
+  user_id: string;
+  name: string;
+  unit: string;
+  average_price: number;
+  last_price: number;
+  current_stock: number;
+  min_stock: number | null;
+  created_at: string;
+  updated_at: string;
+  batches: StockBatch[];
+}
+
+export interface ShoppingListItem {
+  id: string;
+  user_id: string;
+  name: string;
+  quantity: number;
+  unit: string;
+  is_purchased: boolean;
+  created_at: string;
 }
 
 // ---------------------------------------------------------------------------

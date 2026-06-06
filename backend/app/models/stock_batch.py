@@ -24,5 +24,11 @@ class StockBatch(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
+    source_expense_item_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("expense_items.id", ondelete="SET NULL"),
+        nullable=True,
+    )
 
     product = relationship("Product", back_populates="batches")
+    source_expense_item = relationship("ExpenseItem", lazy="selectin")

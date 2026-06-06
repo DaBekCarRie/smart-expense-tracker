@@ -6,6 +6,7 @@ import type {
   ExpenseFilters,
   ExpenseUpdate,
   Category,
+  ExpenseItemUpdate,
 } from "@/types";
 
 export async function getExpenses(
@@ -39,6 +40,22 @@ export async function updateExpense(
   data: ExpenseUpdate
 ): Promise<Expense> {
   const response = await apiClient.put<Expense>(`/api/v1/expenses/${id}`, data);
+  const e = response.data;
+  return {
+    ...e,
+    amount: typeof e.amount === "string" ? parseFloat(e.amount) : e.amount,
+  };
+}
+
+export async function updateExpenseItem(
+  expenseId: string,
+  itemId: string,
+  data: ExpenseItemUpdate
+): Promise<Expense> {
+  const response = await apiClient.put<Expense>(
+    `/api/v1/expenses/${expenseId}/items/${itemId}`,
+    data
+  );
   const e = response.data;
   return {
     ...e,

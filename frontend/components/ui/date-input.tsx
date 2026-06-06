@@ -6,7 +6,7 @@
  * No OS-native date picker. Output: ISO YYYY-MM-DD string.
  */
 
-import { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils/cn";
 
 // ── constants ────────────────────────────────────────────────────────────────
@@ -106,6 +106,7 @@ interface Props {
   disabled?: boolean;
   placeholder?: string;
   className?: string;
+  buttonClassName?: string;
   align?: "left" | "right";
 }
 
@@ -116,6 +117,7 @@ export function DateInput({
   disabled,
   placeholder = "Select date",
   className,
+  buttonClassName,
   align = "left",
 }: Props) {
   const today = new Date();
@@ -134,13 +136,13 @@ export function DateInput({
   // Close on outside click
   useEffect(() => {
     if (!open) return;
-    function handleClick(e: MouseEvent) {
+    function handleClose(e: MouseEvent) {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
         setOpen(false);
       }
     }
-    document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
+    document.addEventListener("mousedown", handleClose);
+    return () => document.removeEventListener("mousedown", handleClose);
   }, [open]);
 
   // Sync view when value changes externally
@@ -189,7 +191,8 @@ export function DateInput({
           "focus:outline-none focus:ring-0 focus:bg-[#fffdf0]",
           "disabled:opacity-50 disabled:cursor-not-allowed",
           open && "bg-[#fffdf0]",
-          !value && "text-gray-500 font-sans"
+          !value && "text-gray-500 font-sans",
+          buttonClassName
         )}
       >
         <CalendarIcon className="w-4 h-4 text-black flex-shrink-0" />
@@ -209,12 +212,13 @@ export function DateInput({
         )}
       </button>
 
-      {/* Calendar popover */}
+      {/* Calendar popover — absolute inside containerRef, unaffected by parent transform */}
       {open && (
         <div
+          data-date-popover
           className={cn(
-            "absolute top-full mt-1.5 z-50 w-72 bg-white rounded-doodle border-doodle shadow-doodle p-4",
-            align === "right" ? "right-0" : "left-0"
+            "absolute z-[9999] w-72 bg-white rounded-doodle border-doodle shadow-doodle p-4 mt-1.5",
+            align === "right" ? "right-0" : "left-0",
           )}
         >
           {/* Month navigation */}

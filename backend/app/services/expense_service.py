@@ -56,7 +56,6 @@ async def create_expense(
     amount: Decimal,
     currency: str = "USD",
     expense_date: date,
-    category_id: int | None = None,
     notes: str | None = None,
     receipt_url: str | None = None,
     ocr_raw: dict | None = None,
@@ -64,36 +63,41 @@ async def create_expense(
     items: list[ExpenseItemCreate] | None = None,
 ) -> Expense:
     """Insert a new expense and return the refreshed ORM instance."""
-    expense = Expense(
-        user_id=user_id,
-        merchant=merchant,
-        amount=amount,
-        currency=currency,
-        expense_date=expense_date,
-        category_id=category_id,
-        notes=notes,
-        receipt_url=receipt_url,
-        ocr_raw=ocr_raw,
-        ocr_confidence=ocr_confidence,
-    )
-    db.add(expense)
-    await db.flush()
-
+    # 1. Instantiate the items beforehand to attach them in the Expense constructor
+    expense_items_list = []
     if items:
         for item in items:
-            # 1. Create the ExpenseItem linked to this receipt
             exp_item = ExpenseItem(
-                expense_id=expense.id,
                 name=item.name,
                 quantity=item.quantity,
                 unit=item.unit,
                 price=item.price,
                 unit_price=item.unit_price,
                 expiry_date=item.expiry_date,
+                category_id=item.category_id,
             )
-            db.add(exp_item)
+            expense_items_list.append(exp_item)
 
-            # 2. Find or Create the Product in Inventory
+    # 2. Instantiate Expense with the pre-populated items list
+    expense = Expense(
+        user_id=user_id,
+        merchant=merchant,
+        amount=amount,
+        currency=currency,
+        expense_date=expense_date,
+        notes=notes,
+        receipt_url=receipt_url,
+        ocr_raw=ocr_raw,
+        ocr_confidence=ocr_confidence,
+        items=expense_items_list,
+    )
+    db.add(expense)
+    await db.flush()
+
+    # 3. Create products, stock batches, and update the shopping list
+    if items:
+        for item, exp_item in zip(items, expense_items_list):
+            # Find or Create the Product in Inventory
             prod_result = await db.execute(
                 select(Product).where(
                     Product.user_id == user_id,
@@ -124,15 +128,16 @@ async def create_expense(
                 avg_val = (await db.execute(stmt)).scalar()
                 product.average_price = Decimal(str(avg_val)) if avg_val is not None else item.unit_price
 
-            # 3. Create the StockBatch with expiration date
+            # Create the StockBatch with expiration date
             batch = StockBatch(
                 product_id=product.id,
                 quantity=item.quantity,
                 expiry_date=item.expiry_date,
+                source_expense_item_id=exp_item.id,
             )
             db.add(batch)
 
-            # 4. Auto- Shopping List link: Mark items as purchased
+            # Auto- Shopping List link: Mark items as purchased
             await db.execute(
                 update(ShoppingListItem)
                 .where(
@@ -156,7 +161,7 @@ async def get_expense_by_id(
 ) -> Expense | None:
     result = await db.execute(
         select(Expense)
-        .options(selectinload(Expense.items))
+        .options(selectinload(Expense.items).selectinload(ExpenseItem.category))
         .where(
             Expense.id == expense_id,
             Expense.user_id == user_id,
@@ -180,7 +185,155 @@ async def update_expense(
 
 
 async def delete_expense(db: AsyncSession, *, expense: Expense) -> None:
+    # Load items for this expense
+    await db.refresh(expense, ["items"])
+    
+    # Delete linked StockBatch records (created from this expense's items)
+    for item in expense.items:
+        batch_result = await db.execute(
+            select(StockBatch).where(StockBatch.source_expense_item_id == item.id)
+        )
+        batches = batch_result.scalars().all()
+        for batch in batches:
+            product_id = batch.product_id
+            await db.delete(batch)
+            
+            # Check if product has any remaining batches
+            remaining = await db.execute(
+                select(func.count()).select_from(StockBatch).where(
+                    StockBatch.product_id == product_id,
+                    StockBatch.id != batch.id,
+                )
+            )
+            if remaining.scalar_one() == 0:
+                # Delete orphaned product
+                prod = await db.execute(
+                    select(Product).where(Product.id == product_id)
+                )
+                product = prod.scalar_one_or_none()
+                if product:
+                    await db.delete(product)
+    
     await db.delete(expense)
+
+
+async def update_expense_item(
+    db: AsyncSession,
+    *,
+    expense: Expense,
+    item_id: uuid.UUID,
+    updates: dict[str, Any],
+) -> ExpenseItem:
+    """Update an expense item and sync linked inventory."""
+    # Find the item
+    item_result = await db.execute(
+        select(ExpenseItem).where(
+            ExpenseItem.id == item_id,
+            ExpenseItem.expense_id == expense.id,
+        )
+    )
+    item = item_result.scalar_one_or_none()
+    if item is None:
+        raise ValueError("Expense item not found")
+    
+    old_name = item.name
+    
+    # Apply updates to expense item
+    for key, value in updates.items():
+        if key == "quantity" and value is not None:
+            item.quantity = float(value)
+        elif key == "unit_price" and value is not None:
+            item.unit_price = Decimal(str(value))
+        elif key == "price" and value is not None:
+            item.price = Decimal(str(value))
+        elif key == "expiry_date":
+            item.expiry_date = value
+        else:
+            setattr(item, key, value)
+    
+    # Recalculate price if quantity or unit_price changed but price is not explicitly passed
+    if ("quantity" in updates or "unit_price" in updates) and "price" not in updates:
+        item.price = Decimal(str(item.quantity)) * item.unit_price
+    
+    # Sync linked inventory (StockBatch via source_expense_item_id)
+    batch_result = await db.execute(
+        select(StockBatch)
+        .options(selectinload(StockBatch.product))
+        .where(StockBatch.source_expense_item_id == item.id)
+    )
+    linked_batches = batch_result.scalars().all()
+    
+    for batch in linked_batches:
+        # Update batch quantity
+        if "quantity" in updates and updates["quantity"] is not None:
+            batch.quantity = float(updates["quantity"])
+        if "expiry_date" in updates:
+            batch.expiry_date = updates["expiry_date"]
+        
+        # If product name changed, find or create the new product
+        if "name" in updates and updates["name"] != old_name and updates["name"]:
+            new_prod_result = await db.execute(
+                select(Product).where(
+                    Product.name == updates["name"],
+                    Product.user_id == expense.user_id,
+                )
+            )
+            new_product = new_prod_result.scalar_one_or_none()
+            if not new_product:
+                new_product = Product(
+                    user_id=expense.user_id,
+                    name=updates["name"],
+                    unit=updates.get("unit", item.unit) or "หน่วย",
+                    last_price=item.unit_price,
+                    average_price=item.unit_price,
+                )
+                db.add(new_product)
+                await db.flush()
+            
+            old_product_id = batch.product_id
+            batch.product_id = new_product.id
+            
+            # Clean up old product if no batches remain
+            remaining = await db.execute(
+                select(func.count()).select_from(StockBatch).where(
+                    StockBatch.product_id == old_product_id,
+                    StockBatch.id != batch.id,
+                )
+            )
+            if remaining.scalar_one() == 0:
+                old_prod = await db.execute(
+                    select(Product).where(Product.id == old_product_id)
+                )
+                old_product = old_prod.scalar_one_or_none()
+                if old_product:
+                    await db.delete(old_product)
+        elif "unit" in updates and updates["unit"] and batch.product:
+            batch.product.unit = updates["unit"]
+
+    # Recalculate expense total
+    all_items_result = await db.execute(
+        select(ExpenseItem).where(ExpenseItem.expense_id == expense.id)
+    )
+    all_items = all_items_result.scalars().all()
+    expense.amount = sum(i.price for i in all_items)
+    
+    await db.flush()
+    return item
+
+
+async def get_item_inventory_flags(
+    db: AsyncSession,
+    item_ids: list[uuid.UUID],
+) -> set[uuid.UUID]:
+    """Return the subset of item_ids that have a linked StockBatch."""
+    if not item_ids:
+        return set()
+    result = await db.execute(
+        select(StockBatch.source_expense_item_id).where(
+            StockBatch.source_expense_item_id.in_(item_ids)
+        )
+    )
+    return set(result.scalars().all())
 
 
 async def list_expenses_cursor(
@@ -206,7 +359,7 @@ async def list_expenses_cursor(
     filters = [Expense.user_id == user_id]
 
     if category_id is not None:
-        filters.append(Expense.category_id == category_id)
+        filters.append(Expense.items.any(ExpenseItem.category_id == category_id))
     if date_from is not None:
         filters.append(Expense.expense_date >= date_from)
     if date_to is not None:
@@ -229,7 +382,7 @@ async def list_expenses_cursor(
     # Total count (ignores cursor)
     count_filters = [Expense.user_id == user_id]
     if category_id is not None:
-        count_filters.append(Expense.category_id == category_id)
+        count_filters.append(Expense.items.any(ExpenseItem.category_id == category_id))
     if date_from is not None:
         count_filters.append(Expense.expense_date >= date_from)
     if date_to is not None:
@@ -244,7 +397,7 @@ async def list_expenses_cursor(
     # Fetch limit+1 to detect has_more
     data_q = (
         base_q
-        .options(selectinload(Expense.items))
+        .options(selectinload(Expense.items).selectinload(ExpenseItem.category))
         .order_by(Expense.expense_date.desc(), Expense.id.desc())
         .limit(limit + 1)
     )

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Patrick_Hand, Mali } from "next/font/google";
+import { Patrick_Hand, Mali, Noto_Sans_Thai } from "next/font/google";
 import { Providers } from "@/components/layout/Providers";
 import "./globals.css";
 
@@ -17,6 +17,13 @@ const mali = Mali({
   variable: "--font-mali",
 });
 
+const notoSansThai = Noto_Sans_Thai({
+  weight: ["400", "500", "600", "700"],
+  subsets: ["thai"],
+  display: "swap",
+  variable: "--font-noto-thai",
+});
+
 export const metadata: Metadata = {
   title: "Smart Expense Tracker",
   description: "OCR-powered expense tracking",
@@ -28,7 +35,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${patrickHand.variable} ${mali.variable}`}>
+    <html lang="en" className={`${patrickHand.variable} ${mali.variable} ${notoSansThai.variable}`}>
       <body className="font-sans antialiased text-slate-900">
         <Providers>{children}</Providers>
       </body>

@@ -6,12 +6,14 @@ import { Upload, Image as ImageIcon, Loader2, AlertCircle, CheckCircle2 } from "
 import { compressReceiptImage, getCompressionStats } from "@/lib/utils/imageCompression";
 import { useOCR } from "@/lib/hooks/useOCR";
 import { OCRResultPreview } from "./OCRResultPreview";
-import type { ExpenseCreate, UploadState } from "@/types";
+import type { OCRResult, UploadState } from "@/types";
 import { cn } from "@/lib/utils/cn";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
+import { OCROverlay } from "@/components/ui/LoadingStates";
 
 interface Props {
   /** Called when the user clicks "Apply to form" in the OCR preview. */
-  onApply?: (data: Partial<ExpenseCreate>) => void;
+  onApply?: (result: OCRResult) => void;
   className?: string;
 }
 
@@ -31,8 +33,10 @@ interface CompressionInfo {
  * - Lets the user confirm / edit before creating a transaction
  */
 export function ReceiptUploader({ onApply, className }: Props) {
+  const { t } = useTranslation();
   const [uploadState, setUploadState] = useState<UploadState>("idle");
   const [compressionInfo, setCompressionInfo] = useState<CompressionInfo | null>(null);
+  const [originalSizeStr, setOriginalSizeStr] = useState<string>("2.3 MB");
   const [preview, setPreview] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
 
@@ -47,6 +51,10 @@ export function ReceiptUploader({ onApply, className }: Props) {
       // Generate local preview URL
       setPreview(URL.createObjectURL(file));
       setFileName(file.name);
+      const sizeStr = file.size > 1024 * 1024
+        ? `${(file.size / (1024 * 1024)).toFixed(1)} MB`
+        : `${(file.size / 1024).toFixed(0)} KB`;
+      setOriginalSizeStr(sizeStr);
       setCompressionInfo(null);
       ocrMutation.reset();
 
@@ -91,6 +99,7 @@ export function ReceiptUploader({ onApply, className }: Props) {
     setPreview(null);
     setFileName(null);
     setCompressionInfo(null);
+    setOriginalSizeStr("2.3 MB");
     if (preview) URL.revokeObjectURL(preview);
     ocrMutation.reset();
   }
@@ -103,10 +112,10 @@ export function ReceiptUploader({ onApply, className }: Props) {
       <div
         {...getRootProps()}
         className={cn(
-          "relative flex flex-col items-center justify-center gap-3 rounded-doodle border-doodle border-dashed p-8 text-center transition-all cursor-pointer shadow-doodle",
+          "relative flex flex-col items-center justify-center gap-3 rounded-doodle border-[3px] border-dashed border-black p-8 text-center transition-all cursor-pointer",
           isDragActive
-            ? "border-black bg-pastel-blue translate-y-[2px] shadow-doodle-sm"
-            : "border-black bg-white hover:bg-paper hover:translate-y-[-2px] hover:shadow-[4px_6px_0px_0px_rgba(0,0,0,1)]",
+            ? "border-black bg-pastel-blue"
+            : "border-black bg-[#fffdf0] hover:bg-[#fff9d0]",
           isBusy && "pointer-events-none opacity-80 bg-paper",
           uploadState === "done" && "border-black bg-pastel-green",
           uploadState === "error" && "border-black bg-pastel-pink"
@@ -130,10 +139,10 @@ export function ReceiptUploader({ onApply, className }: Props) {
             <Upload className="h-8 w-8 text-black" strokeWidth={2.5} />
             <div>
               <p className="text-lg font-bold text-black tracking-wide">
-                {isDragActive ? "Drop it like it's hot!" : "Drag & drop a receipt"}
+                {isDragActive ? t.uploadDragActive : t.uploadDragDrop}
               </p>
               <p className="mt-0.5 text-xs text-gray-600 font-bold">
-                or click to select — JPEG, PNG, HEIC, WebP
+                {t.uploadIdleHint}
               </p>
             </div>
           </>
@@ -141,19 +150,19 @@ export function ReceiptUploader({ onApply, className }: Props) {
 
         {uploadState === "compressing" && (
           <StatusRow icon={<Loader2 className="h-6 w-6 animate-spin text-black" strokeWidth={2.5} />}>
-            Compressing to WebP…
+            {t.uploadCompressingState}
           </StatusRow>
         )}
 
         {uploadState === "uploading" && (
           <StatusRow icon={<Loader2 className="h-6 w-6 animate-spin text-black" strokeWidth={2.5} />}>
-            Uploading &amp; extracting with OCR…
+            {t.uploadUploadingState}
           </StatusRow>
         )}
 
         {uploadState === "done" && (
           <StatusRow icon={<CheckCircle2 className="h-6 w-6 text-black" strokeWidth={2.5} />}>
-            <span className="text-black font-bold text-lg">Extraction complete</span>
+            <span className="text-black font-bold text-lg">{t.uploadDoneState}</span>
             {fileName && (
               <span className="ml-1.5 text-xs text-gray-700 font-bold truncate max-w-[180px]">
                 {fileName}
@@ -164,24 +173,14 @@ export function ReceiptUploader({ onApply, className }: Props) {
 
         {uploadState === "error" && (
           <StatusRow icon={<AlertCircle className="h-6 w-6 text-black" strokeWidth={2.5} />}>
-            <span className="text-black font-bold text-lg">Upload failed</span>
+            <span className="text-black font-bold text-lg">{t.uploadFailedState}</span>
             <span className="ml-1.5 text-xs text-gray-700 font-bold">
-              — tap to try again
+              {t.uploadFailedHint}
             </span>
           </StatusRow>
         )}
 
-        {/* Compression stats (shown when done or after compressing) */}
-        {compressionInfo && uploadState !== "idle" && (
-          <p className="text-xs text-gray-700 font-bold">
-            <ImageIcon className="inline h-4 w-4 mr-1 align-text-bottom text-black" strokeWidth={2.5} />
-            {Math.round(compressionInfo.originalKB)} KB →{" "}
-            {Math.round(compressionInfo.compressedKB)} KB &nbsp;
-            <span className="text-green-700 font-bold text-sm">
-              −{compressionInfo.savingPercent}%
-            </span>
-          </p>
-        )}
+
       </div>
 
       {/* OCR result preview — shown after successful extraction */}
@@ -199,7 +198,7 @@ export function ReceiptUploader({ onApply, className }: Props) {
       {uploadState === "error" && ocrMutation.error && (
         <div className="flex items-start gap-2 rounded-doodle border-doodle bg-red-100 px-4 py-3 text-sm text-black shadow-doodle-sm">
           <AlertCircle className="h-5 w-5 flex-shrink-0 mt-0.5 text-black" strokeWidth={2.5} />
-          <span className="font-bold">{ocrMutation.error.message ?? "OCR extraction failed. Please try again."}</span>
+          <span className="font-bold">{ocrMutation.error.message ?? t.uploadOcrFailed}</span>
         </div>
       )}
 
@@ -210,8 +209,12 @@ export function ReceiptUploader({ onApply, className }: Props) {
           onClick={handleReset}
           className="text-sm font-bold text-gray-600 hover:text-black underline underline-offset-4 decoration-2"
         >
-          Upload a different receipt
+          {t.uploadDifferentReceipt}
         </button>
+      )}
+
+      {(uploadState === "compressing" || uploadState === "uploading") && (
+        <OCROverlay uploadState={uploadState} />
       )}
     </div>
   );

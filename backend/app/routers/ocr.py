@@ -21,6 +21,7 @@ from app.models.category import Category
 from app.models.user import User
 from app.schemas.ocr import OCRUploadResponse
 from app.services.ocr_service import ocr_service
+from app.services.storage_service import storage_service
 from app.utils.image import (
     _COMPRESS_THRESHOLD_BYTES,
     compress_image,
@@ -89,18 +90,9 @@ async def upload_receipt(
         image_bytes = compress_image(image_bytes)
 
     # ------------------------------------------------------------------ #
-    # 4. Save image to disk
+    # 4. Save image (uploads to Cloudflare R2 if configured, falls back to disk)
     # ------------------------------------------------------------------ #
-    import os
-    import uuid
-
-    uploads_dir = os.path.join(os.getcwd(), "uploads")
-    os.makedirs(uploads_dir, exist_ok=True)
-    filename = f"{uuid.uuid4().hex}.webp"
-    file_path = os.path.join(uploads_dir, filename)
-    with open(file_path, "wb") as f:
-        f.write(image_bytes)
-    receipt_url = f"/uploads/{filename}"
+    receipt_url = await storage_service.save_receipt(image_bytes)
 
     # ------------------------------------------------------------------ #
     # 5. Fetch user categories to help OCR

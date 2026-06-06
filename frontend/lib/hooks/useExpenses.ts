@@ -12,11 +12,13 @@ import {
   deleteExpense,
   getCategories,
   createCategory,
+  updateExpenseItem,
 } from "@/lib/api/expenses";
 import type {
   ExpenseFilters,
   ExpenseCreate,
   ExpenseUpdate,
+  ExpenseItemUpdate,
 } from "@/types";
 
 export function useExpenses(filters?: ExpenseFilters) {
@@ -42,6 +44,24 @@ export function useUpdateExpense() {
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: ExpenseUpdate }) =>
       updateExpense(id, data),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["expenses"] });
+    },
+  });
+}
+
+export function useUpdateExpenseItem() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      expenseId,
+      itemId,
+      data,
+    }: {
+      expenseId: string;
+      itemId: string;
+      data: ExpenseItemUpdate;
+    }) => updateExpenseItem(expenseId, itemId, data),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["expenses"] });
     },

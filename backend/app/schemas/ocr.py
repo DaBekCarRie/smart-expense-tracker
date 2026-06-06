@@ -12,6 +12,7 @@ class OCRItemSchema(BaseModel):
     unit: str | None = None
     price: Decimal | None = None
     unit_price: Decimal | None = None
+    category: str | None = None
 
 
 class OCRResult(BaseModel):

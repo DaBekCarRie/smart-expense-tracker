@@ -1,6 +1,6 @@
 # Smart Expense Tracker — Progress Summary
 
-_Last updated: 2026-06-04_
+_Last updated: 2026-06-06_
 
 ---
 
@@ -11,8 +11,10 @@ _Last updated: 2026-06-04_
 | M1: DB & Backend Skeleton | ✅ เสร็จ + QA ผ่าน | บั้กทั้งหมดแก้แล้ว |
 | M2: OCR Pipeline + Redis | ✅ เสร็จ | |
 | M3: Frontend Setup + Components | ✅ เสร็จ | |
-| M4: Frontend-Backend Integration | ⏳ รอดำเนินการ | |
-| M5: Dashboard | ⏳ รอดำเนินการ | |
+| M4: Frontend-Backend Integration | ✅ เสร็จ | |
+| M5: Dashboard | ✅ เสร็จ | |
+| M6: Inventory & Shopping List | ✅ เสร็จ | จัดการคลังวัตถุดิบและรายการของสดที่ต้องซื้อ |
+| Final QA & Polish | ✅ เสร็จ | แก้ไขระบบอัพเดทโปรไฟล์เรียบร้อย |
 
 ---
 
@@ -39,24 +41,6 @@ _Last updated: 2026-06-04_
 | `backend/app/dependencies.py` | `get_current_user`, `get_redis` |
 | `backend/alembic/env.py` | Async Alembic migration setup |
 
-### API Contract — Auth
-| Method | Endpoint | Auth? | Request | Response |
-|--------|----------|-------|---------|----------|
-| POST | `/api/v1/auth/register` | No | `{email, name, password}` | `TokenResponse` |
-| POST | `/api/v1/auth/login` | No | `{email, password}` | `TokenResponse` |
-| POST | `/api/v1/auth/refresh` | Cookie | — | `TokenResponse` |
-| POST | `/api/v1/auth/logout` | No | — | `{message}` |
-| GET | `/api/v1/auth/me` | Cookie | — | `UserOut` |
-
-### API Contract — Transactions
-| Method | Endpoint | Auth? | Request | Response |
-|--------|----------|-------|---------|----------|
-| POST | `/api/v1/transactions` | Cookie | `TransactionCreate` | `TransactionResponse` |
-| GET | `/api/v1/transactions` | Cookie | `?category_id&date_from&date_to&limit&offset` | `TransactionListResponse` |
-| GET | `/api/v1/transactions/{id}` | Cookie | — | `TransactionResponse` |
-| PUT | `/api/v1/transactions/{id}` | Cookie | `TransactionUpdate` | `TransactionResponse` |
-| DELETE | `/api/v1/transactions/{id}` | Cookie | — | `{message}` |
-
 ### QA Bugs พบและแก้แล้ว
 | ID | Severity | คำอธิบาย | การแก้ |
 |----|----------|---------|-------|
@@ -67,11 +51,11 @@ _Last updated: 2026-06-04_
 | B5 | MEDIUM | Duplicate CRUD surface (`/transactions` + `/expenses`) | เก็บทั้งคู่ไว้ (cursor vs offset pagination) |
 | B6 | LOW | Missing test deps (`aiosqlite`, `fakeredis`, `pytest-asyncio`) | สร้าง `requirements-dev.txt` |
 | B7 | LOW | `Field(alias=None)` is a no-op ใน Pydantic v2 | ลบออก |
-
-### Tests
-- `backend/tests/conftest.py` — fixtures: async SQLite in-memory DB, fakeredis, httpx AsyncClient
-- `backend/tests/test_auth.py` — 13 tests (register, login, refresh, logout, /me)
-- `backend/tests/test_transactions.py` — 26 tests (CRUD, ownership isolation, pagination, filters)
+| B8 | MEDIUM | Inconsistent DELETE responses in Categories router | Aligned with Transactions (200 OK + msg) |
+| B9 | MEDIUM | Missing Category Edit UI in Frontend | Implemented Edit mode and PUT API call |
+| B10 | LOW | Large bundle size due to Lucide icon imports | Optimized imports to specific components |
+| B11 | HIGH | SQLAlchemy MissingGreenlet error when saving receipt expenses | Populated items in constructor and explicitly refreshed relationship before serialization |
+| B12 | HIGH | TypeError: unhashable type: 'dict' on backend start | Fixed double curly braces syntax in gemini_vision.py |
 
 ---
 
@@ -84,76 +68,14 @@ _Last updated: 2026-06-04_
 | `backend/app/ocr/tesseract_server.py` | `TesseractProvider` — pytesseract ใน thread pool executor (non-blocking) |
 | `backend/app/ocr/openai_vision.py` | `OpenAIVisionProvider` — GPT-4o-mini vision, async, graceful fallback |
 | `backend/app/services/ocr_service.py` | `OCRService` — Redis cache-before-OCR pipeline, TTL=3600, module-level singleton |
-| `backend/app/routers/ocr.py` | `POST /ocr/upload` — validate, compress if >2MB, OCR, return result |
+| `backend/app/routers/ocr.py` | `POST /ocr/upload` — validate, compress if >2MB, บันทึกรูป (R2/Disk Local), OCR, return result |
+| `backend/app/services/storage_service.py` | บริการบันทึกรูปภาพใบเสร็จเข้า Cloudflare R2 พร้อมระบบ Fallback บันทึกในดิสก์เครื่องหากไม่ได้กำหนด credentials |
 | `backend/app/schemas/ocr.py` | `OCRResult`, `OCRUploadResponse` (Pydantic v2) |
 | `backend/app/utils/image.py` | `compress_image()`, `md5_hash()`, `validate_image()` |
-
-### OCR Cache Flow (non-negotiable order)
-```
-1. MD5(image_bytes) → cache_key
-2. Redis GET(cache_key) → HIT: return cached result (cached=True)
-3. MISS: provider.extract(image_bytes)
-4. Redis SETEX(cache_key, 3600, result)
-5. return result
-```
-
-### Provider Selection
-- `OPENAI_API_KEY` ตั้งค่าอยู่ → ใช้ `OpenAIVisionProvider` (GPT-4o-mini)
-- ไม่มี `OPENAI_API_KEY` → ใช้ `TesseractProvider` (local)
-
-### API Contract — OCR
-| Method | Endpoint | Auth? | Request | Response |
-|--------|----------|-------|---------|----------|
-| POST | `/api/v1/ocr/upload` | Cookie | `multipart/form-data` (file) | `OCRUploadResponse` |
-
-### OCRResult Schema
-```typescript
-{
-  merchant: string
-  amount: Decimal
-  currency: string
-  date: date          // receipt_date internally
-  raw_text: string
-  confidence: float
-  cached: boolean
-}
-```
 
 ---
 
 ## M3 — Frontend Setup + Components ✅
-
-### ไฟล์ที่สร้าง/แก้ไข
-| ไฟล์ | คำอธิบาย |
-|------|---------|
-| `frontend/types/index.ts` | TypeScript interfaces: `Transaction`, `TransactionCreate`, `TransactionUpdate`, `TransactionListResponse`, `User`, `OCRResult`, `UploadState`, `Category` |
-| `frontend/lib/api.ts` | Unified barrel export ของ API functions ทั้งหมด |
-| `frontend/lib/api/client.ts` | Axios instance — `withCredentials: true`, base URL จาก `NEXT_PUBLIC_API_URL`, 401 → redirect login |
-| `frontend/lib/api/auth.ts` | `login()`, `register()`, `logout()`, `getMe()` |
-| `frontend/lib/api/expenses.ts` | `getExpenses()`, `createExpense()`, `updateExpense()`, `deleteExpense()`, `getCategories()` |
-| `frontend/lib/api/ocr.ts` | `extractOCR(file)` — multipart/form-data |
-| `frontend/lib/utils/imageCompression.ts` | `compressReceiptImage()` — compress → WebP ก่อน upload (browser-image-compression) |
-| `frontend/lib/hooks/useExpenses.ts` | React Query hook สำหรับ expenses CRUD |
-| `frontend/lib/hooks/useOCR.ts` | Hook สำหรับ OCR upload state |
-| `frontend/components/upload/ReceiptUploader.tsx` | Drag-drop + WebP compress + OCR + preview + confirm |
-| `frontend/components/upload/OCRResultPreview.tsx` | Preview แสดงผล OCR ให้ user confirm/edit |
-| `frontend/components/expenses/ExpenseList.tsx` | Table: date, merchant, category, amount, actions + pagination + skeleton |
-| `frontend/components/expenses/ExpenseFilter.tsx` | Filter bar: date range, category |
-| `frontend/components/expenses/CategoryBadge.tsx` | Color pill badge สำหรับ category |
-| `frontend/components/dashboard/CategoryBreakdownChart.tsx` | Recharts pie chart (dynamic import) |
-| `frontend/components/dashboard/MonthlySummaryChart.tsx` | Recharts bar chart (dynamic import) |
-| `frontend/components/ui/button.tsx` | Shadcn-compatible Button |
-| `frontend/components/ui/input.tsx` | Input |
-| `frontend/components/ui/card.tsx` | Card, CardHeader, CardContent, CardFooter |
-| `frontend/components/ui/badge.tsx` | Badge (default/secondary/destructive/outline) |
-| `frontend/components/ui/dialog.tsx` | Radix Dialog wrapper |
-| `frontend/components/ui/select.tsx` | Radix Select wrapper |
-| `frontend/components/ui/toast.tsx` | Radix Toast wrapper |
-| `frontend/app/(auth)/login/page.tsx` | Login form (react-hook-form + zod) |
-| `frontend/app/(auth)/register/page.tsx` | Register form |
-| `frontend/app/(dashboard)/expenses/page.tsx` | Expenses page: ReceiptUploader + ExpenseList |
-| `frontend/app/(dashboard)/dashboard/page.tsx` | Dashboard page |
-| `frontend/.env.local.example` | `NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1` |
 
 ### Key Frontend Principles ที่ปฏิบัติตาม
 - ✅ WebP compression client-side ก่อน upload ทุกครั้ง
@@ -161,29 +83,20 @@ _Last updated: 2026-06-04_
 - ✅ Loading states ทุก async operation
 - ✅ ไม่มี hardcoded URLs — ใช้ `NEXT_PUBLIC_API_URL`
 - ✅ TypeScript typed ทุกที่
-| M4: Frontend-Backend Integration | ✅ เสร็จ | |
-| M5: Dashboard | ⏳ รอดำเนินการ | |
+- ✅ Optimized Lucide icons (tree-shaking friendly)
+- ✅ Mobile-responsive Categories layout
+- ✅ Category Editing support
 
 ---
 
 ## M4 — Frontend-Backend Integration ✅
 
 ### การปรับปรุงที่สำคัญ
-- **Alignment:** ปรับจูนฟิลด์วันที่และหมายเหตุให้ตรงกันทั้งระบบโดยใช้ `expense_date` และ `notes` (จากเดิมที่มี `transaction_date` และ `description` ปนอยู่)
-- **OCR Endpoint:** แก้ไข `frontend/lib/api/ocr.ts` จาก `/ocr/extract` → `/api/v1/ocr/upload` เพื่อให้ตรงกับ Backend
-- **Pagination:** เปลี่ยน `/api/v1/transactions` ให้ใช้ Cursor-based pagination เหมือนกับ `/api/v1/expenses` เพื่อความเป็นมาตรฐาน
+- **Alignment:** ปรับจูนฟิลด์วันที่และหมายเหตุให้ตรงกันทั้งระบบโดยใช้ `expense_date` และ `notes`
+- **OCR Endpoint:** แก้ไข `frontend/lib/api/ocr.ts` จาก `/ocr/extract` → `/api/v1/ocr/upload`
+- **Pagination:** เปลี่ยน `/api/v1/transactions` ให้ใช้ Cursor-based pagination เหมือนกับ `/api/v1/expenses`
 - **CORS:** ตรวจสอบแล้วว่า `backend/app/config.py` อนุญาต `http://localhost:3000` โดย default
-- **E2E Flow:** ตรวจสอบความสอดคล้องของข้อมูลจาก Receipt Upload → OCR Result → Form Pre-fill → Create Expense
-
-### ไฟล์ที่แก้ไข
-| ไฟล์ | การเปลี่ยนแปลง |
-|------|---------|
-| `frontend/lib/api/ocr.ts` | เปลี่ยน endpoint เป็น `/api/v1/ocr/upload` |
-| `backend/app/schemas/ocr.py` | เปลี่ยน `transaction_date` → `expense_date` ใน `OCRUploadResponse` |
-| `backend/app/schemas/transaction.py` | เปลี่ยน `transaction_date` → `expense_date` และ `description` → `notes` |
-| `backend/app/api/transactions.py` | อัปเกรดเป็น Cursor pagination และใช้ `expense_service` |
-| `backend/tests/test_transactions.py` | อัปเดต Assertions ให้รองรับ Cursor pagination และฟิลด์ใหม่ |
-| M5: Dashboard | ✅ เสร็จ | |
+- **Consistency:** เพิ่ม explicit `db.commit()` ในทุก routers เพื่อความแน่นอนในการบันทึกข้อมูล
 
 ---
 
@@ -192,55 +105,60 @@ _Last updated: 2026-06-04_
 ### การปรับปรุงที่สำคัญ
 - **Summary Cards:** เพิ่มบัตรสรุปข้อมูล (Total spending, Top Category, Month-over-Month trend, Average spending)
 - **Real Data Integration:** เชื่อมต่อ API ดึงข้อมูลย้อนหลัง 6 เดือนมาคำนวณและแสดงผลใน Dashboard
-- **Responsive Charts:** ใช้ Recharts แสดงผล Monthly Spending (Bar Chart) และ Category Breakdown (Pie Chart) พร้อมรองรับ Mobile/Desktop
-- **Performance:** ใช้ Dynamic Imports สำหรับ Charts เพื่อลดขนาด Bundle เริ่มต้น
+- **Responsive Charts:** ใช้ Recharts แสดงผล Monthly Spending (Bar Chart) และ Category Breakdown (Pie Chart)
 
 ---
 
-## โครงสร้างไฟล์ปัจจุบัน
+## Final QA & Polish ✅
 
-```
-smart-expense-tracker/
-├── docker-compose.yml
-├── backend/
-│   ├── Dockerfile
-│   ├── requirements.txt
-│   ├── requirements-dev.txt
-│   ├── pytest.ini
-│   ├── alembic.ini
-│   ├── alembic/env.py
-│   ├── main.py
-│   └── app/
-│       ├── api/            transactions.py, auth.py
-│       ├── core/           config.py, database.py, redis.py
-│       ├── models/         expense.py, user.py, category.py
-│       ├── ocr/            base.py, tesseract_server.py, openai_vision.py
-│       ├── routers/        auth.py, expenses.py, ocr.py, categories.py, health.py
-│       ├── schemas/        transaction.py, user.py, ocr.py, expense.py
-│       ├── services/       auth_service.py, ocr_service.py, cache_service.py, expense_service.py
-│       └── utils/          image.py
-├── frontend/
-│   ├── package.json
-│   ├── next.config.ts
-│   ├── tailwind.config.ts
-│   ├── types/index.ts
-│   ├── lib/
-│   │   ├── api.ts          (barrel)
-│   │   ├── api/            client.ts, auth.ts, expenses.ts, ocr.ts
-│   │   ├── hooks/          useExpenses.ts, useOCR.ts, useDebounce.ts
-│   │   └── utils/          imageCompression.ts, formatters.ts, cn.ts
-│   ├── components/
-│   │   ├── ui/             button, input, card, badge, dialog, select, toast
-│   │   ├── upload/         ReceiptUploader.tsx, OCRResultPreview.tsx
-│   │   ├── expenses/       ExpenseList.tsx, ExpenseFilter.tsx, CategoryBadge.tsx
-│   │   ├── dashboard/      CategoryBreakdownChart.tsx, MonthlySummaryChart.tsx
-│   │   └── layout/         Providers.tsx
-│   └── app/
-│       ├── layout.tsx
-│       ├── (auth)/         login/, register/
-│       └── (dashboard)/    expenses/, dashboard/, categories/
-└── tests/
-    ├── conftest.py
-    ├── test_auth.py         (13 tests)
-    └── test_transactions.py (26 tests)
-```
+### การปรับปรุงที่สำคัญ
+- **Icon Optimization:** เปลี่ยนการ Import Lucide Icons จาก `*` เป็นแบบเจาะจงเฉพาะตัวที่ใช้ เพื่อลดขนาด Bundle และเพิ่มความเร็วบน Mobile
+- **Category Edit:** เพิ่ม UI สำหรับแก้ไขชื่อ สี และไอคอนของหมวดหมู่ (เดิมมีแค่ลบและเพิ่ม)
+- **UI Refinement:** ปรับปรุง Layout หน้า Categories ให้เป็น 2 Column บน Desktop และ Stack บน Mobile เพื่อการใช้งานที่สะดวกขึ้น
+- **Endpoint Alignment:** ปรับปรุง `delete_category` ให้ส่งค่ากลับเป็น 200 OK พร้อมข้อความแจ้งเตือน เพื่อให้ตรงกับมาตรฐานส่วนอื่นๆ ของระบบ
+
+---
+
+## M6 — Inventory & Shopping List (Back-of-House Stock) ✅
+
+### ไฟล์ที่สร้าง/ปรับปรุง
+| ไฟล์ | คำอธิบาย |
+|------|---------|
+| `backend/app/models/expense_item.py` | เพิ่มฟิลด์ `expiry_date` สำหรับรายการในใบเสร็จ |
+| `backend/app/models/product.py` | จัดการราคาเฉลี่ย ราคาล่าสุด และจำนวนสต็อกปัจจุบัน |
+| `backend/app/models/stock_batch.py` | บันทึกของสดแบ่งตามล็อตและวันหมดอายุ (FIFO) |
+| `backend/app/models/shopping_list.py` | ตารางเก็บรายการของสดที่ต้องซื้อ |
+| `frontend/types/index.ts` | เพิ่ม type interfaces สำหรับ Product, StockBatch, ShoppingListItem |
+| `frontend/app/(dashboard)/layout.tsx` | เพิ่มปุ่มลิ้งก์เมนู Inventory และ Shopping List พร้อมซ่อน Email ใน Sidebar |
+| `frontend/app/(dashboard)/profile/page.tsx` | ซ่อนฟิลด์กรอก Email ออกจากหน้าตั้งค่า |
+| `frontend/app/(dashboard)/inventory/page.tsx` | หน้าจัดการสต็อก ปรับสต็อกแบบ FIFO และแสดงสัญญาณเตือนของใกล้หมดอายุ |
+| `frontend/app/(dashboard)/shopping/page.tsx` | หน้าลิสต์รายการของสดที่ต้องซื้อ และระบบเพิ่มอัตโนมัติจากสต็อกที่ขาดแคลน |
+| `frontend/components/upload/OCRResultPreview.tsx` | ดึงข้อมูลรายการย่อยจาก AI OCR (Gemini) แสดงผลลัพธ์พรีวิวก่อนบันทึก |
+| `frontend/app/(dashboard)/expenses/new/page.tsx` | ฟอร์มบันทึกบิลที่สามารถดู แก้ไขรายการย่อย กรอกวันหมดอายุ และปรับหน่วย (Unit) เป็นแบบพิมพ์เองได้ (Custom Dropdown) |
+| `frontend/components/expenses/ExpenseList.tsx` | ระบบเปิดดูรายละเอียดประวัติการรับของย้อนหลังแยกรายการย่อยและรูปภาพใบเสร็จ |
+
+---
+
+## M7 — Supabase DB Migration & Agent Skills Integration ✅
+
+### การปรับปรุงที่สำคัญ
+- **Supabase Connection & Pools:** ย้ายฐานข้อมูลจาก Render PostgreSQL ไปยัง Supabase Shared Pooler (`aws-1-ap-southeast-2.pooler.supabase.com:6543`)
+- **pgBouncer prepared statement fixes:** แก้ไขปัญหาการเชื่อมต่อผ่าน Transaction Pooler (pgBouncer) โดยปิดระบบ prepared statements caching ใน SQLAlchemy และ asyncpg:
+  - เพิ่ม `prepared_statement_cache_size=0` ใน connection string query parameters (สำหรับ SQLAlchemy dialect)
+  - เพิ่ม `statement_cache_size: 0` ใน `connect_args` (สำหรับ `asyncpg` driver)
+  - ปรับปรุงการทำงานทั้งใน [database.py](file:///Users/joja/Development/smart-expense-tracker/backend/app/database.py) และ [env.py](file:///Users/joja/Development/smart-expense-tracker/backend/alembic/env.py) (Alembic Migrations)
+- **Alembic Migrations:** รันสคริปต์ย้ายสคีมาข้อมูลขึ้น Supabase ได้ครบถ้วนสมบูรณ์
+- **Agent Skills:** ติดตั้ง `@supabase/agent-skills` ได้แก่ `supabase` และ `supabase-postgres-best-practices` เพื่ออำนวยความสะดวกในการพัฒนาและอ้างอิงคู่มือ
+- **CRUD Verification:** รันสคริปต์ทดสอบ Create, Read, Update, Delete บนสคีมาจริงใน Supabase ได้ผลลัพธ์ผ่าน 100%
+- **Theme-Compliant Skeleton Loaders:** เปลี่ยนระบบสลับหน้าเพจ (Page transition / lazy loading) จากการแสดงผลข้อความและสปินเนอร์หมุนธรรมดา มาเป็น **Skeleton Loaders** ที่เลียนแบบโครงสร้างและ Layout ของแต่ละหน้าเพจจริง:
+  - อัปเดตคอมโพเนนต์ [skeleton.tsx](file:///Users/joja/Development/smart-expense-tracker/frontend/components/ui/skeleton.tsx) ให้ทำงานร่วมกับดีไซน์กระดาษยับและขยับได้ในธีม Doodle ผ่านคลาส `.skel-sketch` (มีเอฟเฟกต์สีครีมเหลือบชิมเมอร์และขอบหยักลายเส้นเขียนมือ)
+  - เพิ่มคอมโพเนนต์โหลดล่วงหน้าเฉพาะเพจ `loading.tsx` ในทุกๆ เส้นทางหลัก: [dashboard/loading.tsx](file:///Users/joja/Development/smart-expense-tracker/frontend/app/(dashboard)/dashboard/loading.tsx), [expenses/loading.tsx](file:///Users/joja/Development/smart-expense-tracker/frontend/app/(dashboard)/expenses/loading.tsx), [categories/loading.tsx](file:///Users/joja/Development/smart-expense-tracker/frontend/app/(dashboard)/categories/loading.tsx), [inventory/loading.tsx](file:///Users/joja/Development/smart-expense-tracker/frontend/app/(dashboard)/inventory/loading.tsx), [shopping/loading.tsx](file:///Users/joja/Development/smart-expense-tracker/frontend/app/(dashboard)/shopping/loading.tsx), [profile/loading.tsx](file:///Users/joja/Development/smart-expense-tracker/frontend/app/(dashboard)/profile/loading.tsx)
+  - ปรับปรุงการตรวจสอบสถานะโหลดดั้งเดิม (ที่เคยเป็นข้อความ `✏️ กำลังโหลด...` กะพริบ) ในหน้า [inventory/page.tsx](file:///Users/joja/Development/smart-expense-tracker/frontend/app/(dashboard)/inventory/page.tsx), [shopping/page.tsx](file:///Users/joja/Development/smart-expense-tracker/frontend/app/(dashboard)/shopping/page.tsx), และ [profile/page.tsx](file:///Users/joja/Development/smart-expense-tracker/frontend/app/(dashboard)/profile/page.tsx) ให้ใช้ skeleton layouts ทั้งหมด
+  - เพิ่มอนิเมชัน `fadeIn` (การค่อยๆ ปรากฏขึ้น) และ `bounce-slow` (การกระเด้งเบาๆ) เข้าไปใน [globals.css](file:///Users/joja/Development/smart-expense-tracker/frontend/app/globals.css) เพื่อรองรับการเคลื่อนไหวที่นุ่มนวลและไม่ขัดสายตา
+- **Shopping Auto-Generate & Toast Improvements:**
+  - เปลี่ยนจากการใช้หน้าต่างแจ้งเตือนดั้งเดิม (`alert()`) มาใช้ **Custom Doodle Toast Notification** ที่แสดงมุมล่างขวาของจอ มีสีสันพาสเทลตามประเภท (เขียวสำหรับสำเร็จ, แดงสำหรับผิดพลาด, ฟ้าสำหรับข้อความแจ้งบอก)
+  - เพิ่มคำอธิบายการทำงานของปุ่มสั่งผลิตอัตโนมัติ (`shoppingAutoGenerateDetail`) ด้านล่างปุ่ม เพื่อชี้แจงอย่างชัดเจนว่าระบบทำงานอย่างไร (ตรวจหาของสต็อกเหลือน้อยกว่าค่าต่ำสุด แล้วแอดเพิ่มเข้ามาตามจำนวนที่ขาด)
+  - ปรับคำแปลภาษาไทยและอังกฤษให้มีหัวเรื่องและรายละเอียดที่อบอุ่นเป็นกันเอง (เช่น "Stock is Sufficient!" / "วัตถุดิบมีเพียงพอ!")
+
+
+

@@ -8,7 +8,7 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: {
-        sans: ["var(--font-patrick)", "var(--font-mali)", "cursive", "sans-serif"],
+        sans: ["var(--font-patrick)", "var(--font-mali)", "var(--font-noto-thai)", "cursive", "sans-serif"],
       },
       colors: {
         paper: "#faf8f5",

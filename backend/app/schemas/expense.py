@@ -7,6 +7,8 @@ from typing import Generic, TypeVar
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.schemas.category import CategoryOut
+
 T = TypeVar("T")
 
 
@@ -17,6 +19,7 @@ class ExpenseItemCreate(BaseModel):
     price: Decimal = Field(decimal_places=2)
     unit_price: Decimal = Field(decimal_places=2)
     expiry_date: date | None = None
+    category_id: int | None = None
 
 
 class ExpenseItemOut(BaseModel):
@@ -28,6 +31,9 @@ class ExpenseItemOut(BaseModel):
     price: Decimal
     unit_price: Decimal
     expiry_date: date | None
+    category_id: int | None = None
+    category: CategoryOut | None = None
+    has_inventory: bool = False
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -37,7 +43,6 @@ class ExpenseCreate(BaseModel):
     amount: Decimal = Field(gt=0, decimal_places=2)
     currency: str = Field(default="USD", max_length=3)
     expense_date: date
-    category_id: int | None = None
     notes: str | None = None
     receipt_url: str | None = None
     items: list[ExpenseItemCreate] = Field(default_factory=list)
@@ -48,9 +53,18 @@ class ExpenseUpdate(BaseModel):
     amount: Decimal | None = Field(default=None, gt=0)
     currency: str | None = Field(default=None, max_length=3)
     expense_date: date | None = None
-    category_id: int | None = None
     notes: str | None = None
     receipt_url: str | None = None
+
+
+class ExpenseItemUpdate(BaseModel):
+    name: str | None = Field(default=None, min_length=1, max_length=255)
+    quantity: float | None = Field(default=None, gt=0)
+    unit: str | None = Field(default=None, max_length=50)
+    price: Decimal | None = Field(default=None)
+    unit_price: Decimal | None = Field(default=None)
+    expiry_date: date | None = None
+    category_id: int | None = None
 
 
 class ExpenseOut(BaseModel):
@@ -60,7 +74,6 @@ class ExpenseOut(BaseModel):
     amount: Decimal
     currency: str
     expense_date: date
-    category_id: int | None
     notes: str | None
     receipt_url: str | None
     ocr_raw: dict | None

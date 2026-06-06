@@ -3,9 +3,45 @@
 import { useState, useEffect, type FormEvent } from "react";
 import { getMe, updateProfile } from "@/lib/api/auth";
 import type { User } from "@/types";
+import type { Locale } from "@/lib/i18n/types";
+import { useTranslation } from "@/lib/i18n/LanguageContext";
+import { LanguageSwitcher } from "@/components/layout/LanguageSwitcher";
+import { Skeleton } from "@/components/ui/skeleton";
+
+function ProfileSkeleton() {
+  const { t } = useTranslation();
+  return (
+    <div className="flex-1 p-6 md:p-10 bg-[#f2ede0] overflow-y-auto min-h-screen animate-fadeIn">
+      <div className="max-w-5xl mx-auto space-y-8">
+        <Skeleton className="h-9 w-40 mb-8" />
+
+        <div className="bg-[#faf8f5] rounded-doodle border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-6 md:p-8 space-y-6">
+          {/* Name Field Skeleton */}
+          <div>
+            <Skeleton className="h-4 w-28 mb-2" />
+            <Skeleton className="h-10 w-full rounded-doodle-input" />
+          </div>
+
+          <hr className="border-t-2 border-dashed border-black my-8" />
+
+          {/* Change Password Header & Toggle Button Skeleton */}
+          <div className="flex items-center justify-between">
+            <Skeleton className="h-5 w-40" />
+            <Skeleton className="h-8 w-32 rounded-doodle" />
+          </div>
+
+          {/* Save Button Skeleton */}
+          <Skeleton className="h-11 w-full rounded-doodle mt-4" />
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function ProfilePage() {
+  const { t, locale, setLocale } = useTranslation();
   const [user, setUser] = useState<User | null>(null);
+  const [pendingLocale, setPendingLocale] = useState<Locale>(locale);
   const [name, setName] = useState("");
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -15,6 +51,7 @@ export default function ProfilePage() {
   const [isPageLoading, setIsPageLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [showPasswordSection, setShowPasswordSection] = useState(false);
 
   useEffect(() => {
     getMe()
@@ -23,7 +60,7 @@ export default function ProfilePage() {
         setName(data.name);
       })
       .catch((err) => {
-        setError("Failed to load user profile.");
+        setError(t.error);
         console.error(err);
       })
       .finally(() => {
@@ -38,21 +75,21 @@ export default function ProfilePage() {
 
     // Basic Validation
     if (!name.trim()) {
-      setError("Name cannot be empty.");
+      setError(t.required);
       return;
     }
 
     if (newPassword || currentPassword || confirmPassword) {
       if (!currentPassword) {
-        setError("Current password is required to change password.");
+        setError(t.profileCurrentPassword + " " + t.required);
         return;
       }
       if (newPassword.length < 8) {
-        setError("New password must be at least 8 characters long.");
+        setError(t.error);
         return;
       }
       if (newPassword !== confirmPassword) {
-        setError("New password and confirm password do not match.");
+        setError(t.error);
         return;
       }
     }
@@ -65,58 +102,38 @@ export default function ProfilePage() {
         new_password: newPassword || undefined,
       });
       setUser(updated);
-      setSuccess("Profile updated successfully!");
-      // Dispatch event to notify parent layout to refresh user profile details
+      setLocale(pendingLocale);
+      setSuccess(t.profileUpdated);
       window.dispatchEvent(new Event("profile-updated"));
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
-    } catch (err: any) {
-      const message = err.response?.data?.detail || "Failed to update profile.";
-      setError(message);
+    } catch (err: unknown) {
+      const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      setError(detail || t.error);
     } finally {
       setIsLoading(false);
     }
   }
 
   if (isPageLoading) {
-    return (
-      <div className="flex-1 p-6 flex items-center justify-center bg-[#f2ede0]">
-        <div className="text-center">
-          <div className="text-xl font-bold animate-pulse">Loading Profile...</div>
-        </div>
-      </div>
-    );
+    return <ProfileSkeleton />;
   }
 
   return (
     <div className="flex-1 p-6 md:p-10 bg-[#f2ede0] overflow-y-auto">
-      <div className="max-w-2xl mx-auto">
+      <div className="max-w-5xl mx-auto">
         <h1 className="text-3xl md:text-4xl font-bold text-black mb-8 tracking-wide font-sans">
-          Profile Settings
+          {t.profileTitle}
         </h1>
 
         <div className="bg-[#faf8f5] rounded-doodle border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-6 md:p-8">
           <form onSubmit={handleSubmit} noValidate className="space-y-6">
-            
-            {/* Email (Read-only) */}
-            <div>
-              <label className="block text-sm font-bold text-black mb-1">
-                Email Address
-              </label>
-              <input
-                type="email"
-                value={user?.email || ""}
-                disabled
-                className="w-full rounded-doodle-input border-doodle-input bg-[#f0ebd9] px-3 py-2 text-sm disabled:opacity-75 cursor-not-allowed font-sans text-gray-700"
-              />
-              <p className="mt-1 text-xs text-gray-500 font-bold">Email cannot be changed.</p>
-            </div>
 
             {/* Name */}
             <div>
               <label htmlFor="name" className="block text-sm font-bold text-black mb-1">
-                Display Name
+                {t.profileDisplayName}
               </label>
               <input
                 id="name"
@@ -125,76 +142,94 @@ export default function ProfilePage() {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Your name"
-                className="w-full rounded-doodle-input border-doodle-input bg-white px-3 py-2 text-sm shadow-doodle-sm transition-colors focus:outline-none focus:ring-0 focus:bg-[#fffdf0] disabled:opacity-50 font-sans"
+                className="w-full rounded-doodle-input border-doodle-input bg-paper px-3 py-2 text-sm shadow-doodle-sm transition-colors focus:outline-none focus:ring-0 focus:bg-[#fffdf0] disabled:opacity-50 font-sans"
                 disabled={isLoading}
               />
             </div>
 
             <hr className="border-t-2 border-dashed border-black my-8" />
 
+            {/* Language Preference */}
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-bold text-black">{t.selectLanguage}</label>
+              <LanguageSwitcher value={pendingLocale} onChange={setPendingLocale} />
+            </div>
+
+            <hr className="border-t-2 border-dashed border-black my-8" />
+
             {/* Change Password Section */}
             <div className="space-y-4">
-              <h3 className="text-lg font-bold text-black">Change Password</h3>
-              <p className="text-xs text-gray-600 font-bold mb-4">
-                Leave these fields blank if you do not want to change your password.
-              </p>
-
-              <div>
-                <label
-                  htmlFor="currentPassword"
-                  className="block text-sm font-bold text-black mb-1"
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-bold text-black">{t.profileChangePasswordTitle}</h3>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowPasswordSection((v) => {
+                      if (v) {
+                        setCurrentPassword("");
+                        setNewPassword("");
+                        setConfirmPassword("");
+                      }
+                      return !v;
+                    });
+                  }}
+                  className="text-xs font-bold px-3 py-1.5 rounded-doodle border-2 border-black bg-paper hover:bg-pastel-blue transition-colors shadow-doodle-sm"
                 >
-                  Current Password
-                </label>
-                <input
-                  id="currentPassword"
-                  type="password"
-                  value={currentPassword}
-                  onChange={(e) => setCurrentPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full rounded-doodle-input border-doodle-input bg-white px-3 py-2 text-sm shadow-doodle-sm transition-colors focus:outline-none focus:ring-0 focus:bg-[#fffdf0] disabled:opacity-50 font-sans"
-                  disabled={isLoading}
-                  autoComplete="current-password"
-                />
+                  {showPasswordSection ? t.profileCancelPasswordChange : t.profileChangePasswordToggle}
+                </button>
               </div>
 
-              <div>
-                <label
-                  htmlFor="newPassword"
-                  className="block text-sm font-bold text-black mb-1"
-                >
-                  New Password
-                </label>
-                <input
-                  id="newPassword"
-                  type="password"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full rounded-doodle-input border-doodle-input bg-white px-3 py-2 text-sm shadow-doodle-sm transition-colors focus:outline-none focus:ring-0 focus:bg-[#fffdf0] disabled:opacity-50 font-sans"
-                  disabled={isLoading}
-                  autoComplete="new-password"
-                />
-              </div>
+              {showPasswordSection && (
+                <div className="space-y-4">
+                  <div>
+                    <label htmlFor="currentPassword" className="block text-sm font-bold text-black mb-1">
+                      {t.profileCurrentPassword}
+                    </label>
+                    <input
+                      id="currentPassword"
+                      type="password"
+                      value={currentPassword}
+                      onChange={(e) => setCurrentPassword(e.target.value)}
+                      placeholder="••••••••"
+                      className="w-full rounded-doodle-input border-doodle-input bg-paper px-3 py-2 text-sm shadow-doodle-sm transition-colors focus:outline-none focus:ring-0 focus:bg-[#fffdf0] disabled:opacity-50 font-sans"
+                      disabled={isLoading}
+                      autoComplete="current-password"
+                    />
+                  </div>
 
-              <div>
-                <label
-                  htmlFor="confirmPassword"
-                  className="block text-sm font-bold text-black mb-1"
-                >
-                  Confirm New Password
-                </label>
-                <input
-                  id="confirmPassword"
-                  type="password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full rounded-doodle-input border-doodle-input bg-white px-3 py-2 text-sm shadow-doodle-sm transition-colors focus:outline-none focus:ring-0 focus:bg-[#fffdf0] disabled:opacity-50 font-sans"
-                  disabled={isLoading}
-                  autoComplete="new-password"
-                />
-              </div>
+                  <div>
+                    <label htmlFor="newPassword" className="block text-sm font-bold text-black mb-1">
+                      {t.profileNewPassword}
+                    </label>
+                    <input
+                      id="newPassword"
+                      type="password"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      placeholder="••••••••"
+                      className="w-full rounded-doodle-input border-doodle-input bg-paper px-3 py-2 text-sm shadow-doodle-sm transition-colors focus:outline-none focus:ring-0 focus:bg-[#fffdf0] disabled:opacity-50 font-sans"
+                      disabled={isLoading}
+                      autoComplete="new-password"
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="confirmPassword" className="block text-sm font-bold text-black mb-1">
+                      {t.profileConfirmPassword}
+                    </label>
+                    <input
+                      id="confirmPassword"
+                      type="password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      placeholder="••••••••"
+                      className="w-full rounded-doodle-input border-doodle-input bg-paper px-3 py-2 text-sm shadow-doodle-sm transition-colors focus:outline-none focus:ring-0 focus:bg-[#fffdf0] disabled:opacity-50 font-sans"
+                      disabled={isLoading}
+                      autoComplete="new-password"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Error Notification */}
@@ -217,7 +252,7 @@ export default function ProfilePage() {
               disabled={isLoading}
               className="w-full rounded-doodle bg-pastel-blue px-4 py-3 text-base font-bold text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] border-2 border-black hover:bg-blue-300 hover:translate-y-[-2px] hover:shadow-[4px_6px_0px_0px_rgba(0,0,0,1)] active:translate-y-[2px] active:shadow-none focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed transition-all"
             >
-              {isLoading ? "Saving changes…" : "Save Changes"}
+              {isLoading ? t.profileSaving : t.profileSave}
             </button>
           </form>
         </div>

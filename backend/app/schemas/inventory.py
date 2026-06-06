@@ -12,6 +12,7 @@ class StockBatchOut(BaseModel):
     quantity: float
     expiry_date: _dt.date | None = None
     created_at: _dt.datetime
+    source_expense_item_id: uuid.UUID | None = None
 
     model_config = ConfigDict(from_attributes=True)
 
