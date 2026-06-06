@@ -24,7 +24,21 @@ async def get_current_user(
     from sqlalchemy import select
     import uuid
 
-    # MOCK USER FOR DEVELOPMENT (Disables login requirement)
+    # 1. Try to authenticate real user if access_token cookie is present
+    if access_token:
+        try:
+            payload = decode_token(access_token)
+            if payload.get("type") == "access" and "sub" in payload:
+                user_id = uuid.UUID(payload["sub"])
+                result = await db.execute(select(User).where(User.id == user_id))
+                user = result.scalar_one_or_none()
+                if user:
+                    return user
+        except Exception:
+            # If token is invalid/expired, fall back to mock user or raise 401
+            pass
+
+    # 2. FALLBACK MOCK USER FOR DEVELOPMENT (Disables login requirement)
     result = await db.execute(select(User).limit(1))
     user = result.scalar_one_or_none()
     
