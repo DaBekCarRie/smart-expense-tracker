@@ -46,6 +46,8 @@ def create_app() -> FastAPI:
     from app.routers.health import router as health_router
     from app.routers.ocr import router as ocr_router
     from app.api.transactions import router as transactions_router
+    from app.routers.inventory import router as inventory_router
+    from app.routers.shopping import router as shopping_router
 
     app.include_router(health_router)
     app.include_router(auth_router, prefix="/api/v1")
@@ -53,6 +55,8 @@ def create_app() -> FastAPI:
     app.include_router(expenses_router, prefix="/api/v1")
     app.include_router(ocr_router, prefix="/api/v1")
     app.include_router(transactions_router, prefix="/api/v1")
+    app.include_router(inventory_router, prefix="/api/v1")
+    app.include_router(shopping_router, prefix="/api/v1")
 
     return app
 

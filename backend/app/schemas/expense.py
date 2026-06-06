@@ -10,6 +10,28 @@ from pydantic import BaseModel, ConfigDict, Field
 T = TypeVar("T")
 
 
+class ExpenseItemCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=255)
+    quantity: float = Field(default=1.0, gt=0)
+    unit: str | None = Field(default=None, max_length=50)
+    price: Decimal = Field(decimal_places=2)
+    unit_price: Decimal = Field(decimal_places=2)
+    expiry_date: date | None = None
+
+
+class ExpenseItemOut(BaseModel):
+    id: uuid.UUID
+    expense_id: uuid.UUID
+    name: str
+    quantity: float
+    unit: str | None
+    price: Decimal
+    unit_price: Decimal
+    expiry_date: date | None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class ExpenseCreate(BaseModel):
     merchant: str = Field(min_length=1, max_length=255)
     amount: Decimal = Field(gt=0, decimal_places=2)
@@ -18,6 +40,7 @@ class ExpenseCreate(BaseModel):
     category_id: int | None = None
     notes: str | None = None
     receipt_url: str | None = None
+    items: list[ExpenseItemCreate] = Field(default_factory=list)
 
 
 class ExpenseUpdate(BaseModel):
@@ -43,6 +66,7 @@ class ExpenseOut(BaseModel):
     ocr_raw: dict | None
     ocr_confidence: float | None
     created_at: datetime
+    items: list[ExpenseItemOut] = Field(default_factory=list)
 
     model_config = ConfigDict(from_attributes=True)
 

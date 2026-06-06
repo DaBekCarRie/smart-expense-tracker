@@ -50,6 +50,7 @@ async def create(
         category_id=body.category_id,
         notes=body.notes,
         receipt_url=body.receipt_url,
+        items=body.items,
     )
     await db.commit()
     await db.refresh(expense)

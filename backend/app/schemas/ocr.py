@@ -6,6 +6,14 @@ from decimal import Decimal
 from pydantic import BaseModel, Field
 
 
+class OCRItemSchema(BaseModel):
+    name: str
+    quantity: float = 1.0
+    unit: str | None = None
+    price: Decimal | None = None
+    unit_price: Decimal | None = None
+
+
 class OCRResult(BaseModel):
     merchant: str | None = None
     amount: Decimal | None = None
@@ -18,6 +26,7 @@ class OCRResult(BaseModel):
     cached: bool = False
     processing_time_ms: float = 0.0
     receipt_url: str | None = None
+    items: list[OCRItemSchema] = Field(default_factory=list)
 
     model_config = {"populate_by_name": True, "populate_by_alias": False}
 
@@ -33,6 +42,7 @@ class OCRUploadResponse(BaseModel):
     cached: bool = False
     processing_time_ms: float = 0.0
     receipt_url: str | None = None
+    items: list[OCRItemSchema] = Field(default_factory=list)
 
     @classmethod
     def from_result(cls, result: OCRResult) -> "OCRUploadResponse":
@@ -47,4 +57,5 @@ class OCRUploadResponse(BaseModel):
             cached=result.cached,
             processing_time_ms=result.processing_time_ms,
             receipt_url=result.receipt_url,
+            items=result.items,
         )

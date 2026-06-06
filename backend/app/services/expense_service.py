@@ -14,10 +14,16 @@ from datetime import date
 from decimal import Decimal
 from typing import Any
 
-from sqlalchemy import func, select, and_, or_
+from sqlalchemy import func, select, and_, or_, update
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.models.expense import Expense
+from app.models.expense_item import ExpenseItem
+from app.models.product import Product
+from app.models.stock_batch import StockBatch
+from app.models.shopping_list import ShoppingListItem
+from app.schemas.expense import ExpenseItemCreate
 
 
 # ---------------------------------------------------------------------------
@@ -55,6 +61,7 @@ async def create_expense(
     receipt_url: str | None = None,
     ocr_raw: dict | None = None,
     ocr_confidence: float | None = None,
+    items: list[ExpenseItemCreate] | None = None,
 ) -> Expense:
     """Insert a new expense and return the refreshed ORM instance."""
     expense = Expense(
@@ -71,6 +78,72 @@ async def create_expense(
     )
     db.add(expense)
     await db.flush()
+
+    if items:
+        for item in items:
+            # 1. Create the ExpenseItem linked to this receipt
+            exp_item = ExpenseItem(
+                expense_id=expense.id,
+                name=item.name,
+                quantity=item.quantity,
+                unit=item.unit,
+                price=item.price,
+                unit_price=item.unit_price,
+                expiry_date=item.expiry_date,
+            )
+            db.add(exp_item)
+
+            # 2. Find or Create the Product in Inventory
+            prod_result = await db.execute(
+                select(Product).where(
+                    Product.user_id == user_id,
+                    Product.name == item.name,
+                )
+            )
+            product = prod_result.scalar_one_or_none()
+
+            if not product:
+                product = Product(
+                    user_id=user_id,
+                    name=item.name,
+                    unit=item.unit or "หน่วย",
+                    last_price=item.unit_price,
+                    average_price=item.unit_price,
+                )
+                db.add(product)
+                await db.flush()
+            else:
+                product.last_price = item.unit_price
+                if item.unit:
+                    product.unit = item.unit
+                # Calculate average unit price of all items bought under this name
+                stmt = select(func.avg(ExpenseItem.unit_price)).join(Expense).where(
+                    Expense.user_id == user_id,
+                    ExpenseItem.name == item.name,
+                )
+                avg_val = (await db.execute(stmt)).scalar()
+                product.average_price = Decimal(str(avg_val)) if avg_val is not None else item.unit_price
+
+            # 3. Create the StockBatch with expiration date
+            batch = StockBatch(
+                product_id=product.id,
+                quantity=item.quantity,
+                expiry_date=item.expiry_date,
+            )
+            db.add(batch)
+
+            # 4. Auto- Shopping List link: Mark items as purchased
+            await db.execute(
+                update(ShoppingListItem)
+                .where(
+                    ShoppingListItem.user_id == user_id,
+                    func.lower(ShoppingListItem.name) == func.lower(item.name),
+                    ShoppingListItem.is_purchased == False,
+                )
+                .values(is_purchased=True)
+            )
+
+    await db.flush()
     await db.refresh(expense)
     return expense
 
@@ -82,7 +155,9 @@ async def get_expense_by_id(
     user_id: uuid.UUID,
 ) -> Expense | None:
     result = await db.execute(
-        select(Expense).where(
+        select(Expense)
+        .options(selectinload(Expense.items))
+        .where(
             Expense.id == expense_id,
             Expense.user_id == user_id,
         )
@@ -169,6 +244,7 @@ async def list_expenses_cursor(
     # Fetch limit+1 to detect has_more
     data_q = (
         base_q
+        .options(selectinload(Expense.items))
         .order_by(Expense.expense_date.desc(), Expense.id.desc())
         .limit(limit + 1)
     )

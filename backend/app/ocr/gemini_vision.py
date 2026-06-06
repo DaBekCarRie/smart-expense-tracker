@@ -14,22 +14,30 @@ from decimal import Decimal, InvalidOperation
 import httpx
 
 from app.ocr.base import OCRProvider
-from app.schemas.ocr import OCRResult
+from app.schemas.ocr import OCRResult, OCRItemSchema
 
 logger = logging.getLogger(__name__)
 
 _SYSTEM_PROMPT = """\
-You are a receipt OCR assistant. Extract information from the receipt image and \
-return ONLY a JSON object with these exact keys (use null for any field you cannot find):
+You are a receipt OCR assistant. Extract information from the receipt image, including individual items/products purchased (useful for stock/inventory counting), and return ONLY a JSON object with these exact keys (use null for any field you cannot find):
 
 {{
   "merchant": "<store or restaurant name as a string>",
-  "amount": "<total amount as a numeric string, e.g. \\"12.99\\">",
-  "currency": "<ISO 4217 code, e.g. USD, EUR, GBP, THB>",
+  "amount": "<total amount of the receipt as a numeric string, e.g. \\"12.99\\">",
+  "currency": "<ISO 4217 code, e.g. USD, EUR, GBP, THB, or null if unknown>",
   "date": "<date in YYYY-MM-DD format>",
   "category": "<category name as a string>",
   "raw_text": "<all visible text on the receipt, newline-separated>",
-  "confidence": <a float 0.0-1.0 reflecting your overall extraction confidence>
+  "confidence": <a float 0.0-1.0 reflecting your overall extraction confidence>,
+  "items": [
+    {{
+      "name": "<name of the product/item, e.g. \\"ซอสหอยนางรม 1 กก.\\">",
+      "quantity": <quantity purchased as a float or integer, e.g. 5>,
+      "unit": "<the unit description if specified, e.g. \\"หน่วย\\", \\"แพ็ค\\", \\"ขวด\\", or null>",
+      "price": "<total price for this quantity as a numeric string, e.g. \\"120.00\\">",
+      "unit_price": "<price per single unit as a numeric string, e.g. \\"24.00\\">"
+    }}
+  ]
 }}
 
 {category_instruction}
@@ -70,6 +78,52 @@ def _parse_response(content: str) -> OCRResult:
     except (TypeError, ValueError):
         confidence = 0.0
 
+    items_list: list[OCRItemSchema] = []
+    raw_items = data.get("items")
+    if isinstance(raw_items, list):
+        for item in raw_items:
+            if not isinstance(item, dict) or "name" not in item:
+                continue
+            item_name = str(item["name"])
+            if not item_name.strip():
+                continue
+
+            try:
+                quantity = float(item.get("quantity", 1.0))
+            except (TypeError, ValueError):
+                quantity = 1.0
+
+            unit = item.get("unit")
+            unit = str(unit) if unit else None
+
+            item_price = None
+            raw_price = item.get("price")
+            if raw_price is not None:
+                try:
+                    item_price = Decimal(str(raw_price))
+                except InvalidOperation:
+                    pass
+
+            unit_price = None
+            raw_unit_price = item.get("unit_price")
+            if raw_unit_price is not None:
+                try:
+                    unit_price = Decimal(str(raw_unit_price))
+                except InvalidOperation:
+                    pass
+            elif item_price is not None and quantity > 0:
+                unit_price = item_price / Decimal(str(quantity))
+
+            items_list.append(
+                OCRItemSchema(
+                    name=item_name,
+                    quantity=quantity,
+                    unit=unit,
+                    price=item_price,
+                    unit_price=unit_price or item_price,
+                )
+            )
+
     return OCRResult(
         merchant=data.get("merchant") or None,
         amount=amount,
@@ -78,6 +132,7 @@ def _parse_response(content: str) -> OCRResult:
         category=data.get("category") or None,
         raw_text=data.get("raw_text", ""),
         confidence=confidence,
+        items=items_list,
     )
 
 
