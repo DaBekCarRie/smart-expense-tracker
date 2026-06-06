@@ -37,6 +37,9 @@ services:
       - "8000:8000"
     env_file:
       - ./backend/.env
+    environment:
+      # Override in production: set to your frontend origin, e.g. https://yourapp.com
+      CORS_ORIGINS: '["http://localhost:3000"]'
     volumes:
       - ./backend:/app
     depends_on:

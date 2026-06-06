@@ -20,5 +20,7 @@ COPY . .
 # Expose FastAPI port
 EXPOSE 8000
 
-# Start with uvicorn — main.py at /app/main.py imports app from app.main
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+# Run migrations then start the server
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+ENTRYPOINT ["/entrypoint.sh"]
