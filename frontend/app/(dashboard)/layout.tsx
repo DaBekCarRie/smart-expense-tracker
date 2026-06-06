@@ -103,6 +103,15 @@ export default function DashboardLayout({
       .catch(() => {
         router.push("/login");
       });
+
+    const handleProfileUpdate = () => {
+      getMe().then(setUser).catch(() => {});
+    };
+
+    window.addEventListener("profile-updated", handleProfileUpdate);
+    return () => {
+      window.removeEventListener("profile-updated", handleProfileUpdate);
+    };
   }, [router]);
 
   async function handleLogout() {

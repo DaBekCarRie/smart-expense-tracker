@@ -66,6 +66,8 @@ export default function ProfilePage() {
       });
       setUser(updated);
       setSuccess("Profile updated successfully!");
+      // Dispatch event to notify parent layout to refresh user profile details
+      window.dispatchEvent(new Event("profile-updated"));
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
