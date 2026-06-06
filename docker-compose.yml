@@ -38,7 +38,7 @@ services:
     env_file:
       - ./backend/.env
     environment:
-      # Override in production: set to your frontend origin, e.g. https://yourapp.com
+      # Production: CORS_ORIGINS=["https://smart-expense-tracker-coral.vercel.app"]
       CORS_ORIGINS: '["http://localhost:3000"]'
     volumes:
       - ./backend:/app
