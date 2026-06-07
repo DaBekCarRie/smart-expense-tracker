@@ -181,23 +181,23 @@ def _parse_response(content: str) -> OCRResult:
 
 
 class GeminiVisionProvider(OCRProvider):
-    """OCR backend using Google Gemini 3.1 Flash Lite via REST API."""
+    """OCR backend using Google Gemini 2.5 Flash via REST API."""
 
-    def __init__(self, api_key: str, model: str = "gemini-3.1-flash-lite") -> None:
+    def __init__(self, api_key: str, model: str = "gemini-2.5-flash") -> None:
         if not api_key:
             raise ValueError("GEMINI_API_KEY must be provided")
         self._api_key = api_key
         self._model = model
-        # Sequence of models to try in case of failures (e.g. rate limits / Quota exceeded)
+        # Fallback chain — all are real, released Gemini model IDs
         self._models_to_try = [
             model,
-            "gemini-3-flash",
-            "gemini-3.5-flash",
-            "gemini-2.5-flash",
-            "gemini-2.5-flash-lite"
+            "gemini-2.5-flash-lite-preview-06-17",
+            "gemini-2.0-flash",
+            "gemini-2.0-flash-lite",
+            "gemini-1.5-flash",
         ]
         # Deduplicate while preserving order
-        seen = set()
+        seen: set[str] = set()
         self._models_to_try = [x for x in self._models_to_try if not (x in seen or seen.add(x))]
 
     async def extract(
