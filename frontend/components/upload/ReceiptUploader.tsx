@@ -138,10 +138,10 @@ export function ReceiptUploader({ onApply, className }: Props) {
           <>
             <Upload className="h-8 w-8 text-black" strokeWidth={2.5} />
             <div>
-              <p className="text-lg font-bold text-black tracking-wide">
+              <p className="text-sm sm:text-lg font-bold text-black tracking-wide">
                 {isDragActive ? t.uploadDragActive : t.uploadDragDrop}
               </p>
-              <p className="mt-0.5 text-xs text-gray-600 font-bold">
+              <p className="mt-0.5 text-[10px] sm:text-xs text-gray-600 font-bold">
                 {t.uploadIdleHint}
               </p>
             </div>

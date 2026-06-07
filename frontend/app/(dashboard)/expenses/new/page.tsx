@@ -212,7 +212,7 @@ export default function NewExpensePage() {
 
         {/* Receipt Scan Section */}
         <section className="bg-[#fffdf7] rounded-doodle border-doodle border-[2.5px] shadow-doodle p-6">
-          <div className="flex items-center gap-2 text-sm font-bold text-gray-400 mb-4 whitespace-nowrap">
+          <div className="flex items-center gap-2 text-sm font-bold text-black mb-4 whitespace-nowrap">
             <Camera className="w-4 h-4" /> {t.newExpenseScanSection}
             <span className="text-[11px] bg-pastel-purple border-2 border-black rounded-doodle px-2 py-0.5 text-black ml-2 shadow-doodle-sm">{t.newExpenseRecommended}</span>
           </div>
@@ -222,7 +222,7 @@ export default function NewExpensePage() {
 
         {/* Receipt Details Section */}
         <section className="bg-[#fffdf7] rounded-doodle-2 border-doodle border-[2.5px] shadow-doodle p-6">
-          <div className="flex items-center gap-2 text-sm font-bold text-gray-400 mb-5">
+          <div className="flex items-center gap-2 text-sm font-bold text-black mb-5">
             <Receipt className="w-4 h-4" /> {t.newExpenseDetailsSection}
           </div>
 
@@ -678,7 +678,7 @@ export default function NewExpensePage() {
 
         {/* Notes */}
         <section className="bg-[#fffdf7] rounded-doodle-2 border-doodle border-[2.5px] shadow-doodle p-6">
-          <div className="flex items-center gap-2 text-sm font-bold text-gray-400 mb-4">
+          <div className="flex items-center gap-2 text-sm font-bold text-black mb-4">
             <FileText className="w-4 h-4" /> {t.newExpenseNotesSection}
           </div>
           <textarea
