@@ -16,6 +16,8 @@ def get_pool() -> ConnectionPool:
             settings.REDIS_URL,
             decode_responses=True,
             max_connections=20,
+            health_check_interval=30,
+            socket_keepalive=True,
         )
     return _pool
 

@@ -64,7 +64,7 @@ async def register(body: UserCreate, response: Response, db: AsyncSession = Depe
     user = User(
         email=body.email,
         name=body.name,
-        password_hash=hash_password(body.password),
+        password_hash=await hash_password(body.password),
     )
     db.add(user)
     await db.flush()
@@ -79,7 +79,7 @@ async def login(body: UserLogin, response: Response, db: AsyncSession = Depends(
     result = await db.execute(select(User).where(User.email == body.email))
     user = result.scalar_one_or_none()
 
-    if not user or not verify_password(body.password, user.password_hash):
+    if not user or not await verify_password(body.password, user.password_hash):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
 
     access_token = _set_auth_cookies(response, str(user.id))
@@ -136,12 +136,12 @@ async def update_profile(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Current password is required to set a new password",
             )
-        if not verify_password(body.current_password, current_user.password_hash):
+        if not await verify_password(body.current_password, current_user.password_hash):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid current password",
             )
-        current_user.password_hash = hash_password(body.new_password)
+        current_user.password_hash = await hash_password(body.new_password)
 
     db.add(current_user)
     await db.commit()
@@ -187,7 +187,7 @@ async def reset_password(
             detail="Invalid or expired reset token",
         )
 
-    user.password_hash = hash_password(body.new_password)
+    user.password_hash = await hash_password(body.new_password)
     db.add(user)
     await db.commit()
 

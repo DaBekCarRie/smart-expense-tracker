@@ -87,7 +87,8 @@ async def upload_receipt(
             "Compressing image from %.1f MB before OCR",
             file_size / 1024 / 1024,
         )
-        image_bytes = compress_image(image_bytes)
+        import asyncio
+        image_bytes = await asyncio.to_thread(compress_image, image_bytes)
 
     # ------------------------------------------------------------------ #
     # 4. Save image (uploads to Cloudflare R2 if configured, falls back to disk)

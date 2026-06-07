@@ -26,6 +26,7 @@ export function useExpenses(filters?: ExpenseFilters) {
     queryKey: ["expenses", filters] as const,
     queryFn: () => getExpenses(filters),
     staleTime: 60_000,
+    gcTime: 5 * 60_000,
   });
 }
 
@@ -82,7 +83,8 @@ export function useCategories() {
   return useQuery({
     queryKey: ["categories"] as const,
     queryFn: getCategories,
-    staleTime: 5 * 60_000, // categories change infrequently
+    staleTime: 5 * 60_000,
+    gcTime: 10 * 60_000,
   });
 }
 

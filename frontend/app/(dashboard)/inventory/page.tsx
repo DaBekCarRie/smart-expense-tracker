@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
-import { getInventory, adjustStock, updateMinStock, deleteProduct } from "@/lib/api/inventory";
+import { useState, useMemo } from "react";
+import { useInventory, useAdjustStock, useUpdateMinStock, useDeleteProduct } from "@/lib/hooks/useInventory";
 import type { Product } from "@/types";
 import { formatCurrency } from "@/lib/utils/formatters";
 import { useTranslation } from "@/lib/i18n/LanguageContext";
@@ -103,30 +103,16 @@ function InventorySkeleton() {
 
 export default function InventoryPage() {
   const { t } = useTranslation();
-  const [products, setProducts] = useState<Product[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data: products = [], isLoading, isError } = useInventory();
+  const adjustStockMutation = useAdjustStock();
+  const updateMinStockMutation = useUpdateMinStock();
+  const deleteProductMutation = useDeleteProduct();
+
   const [search, setSearch] = useState("");
   const [editingMinStockId, setEditingMinStockId] = useState<string | null>(null);
   const [minStockValue, setMinStockValue] = useState<string>("");
   const [expandedProductId, setExpandedProductId] = useState<string | null>(null);
   const [isAdjusting, setIsAdjusting] = useState<Record<string, boolean>>({});
-
-  const fetchInventory = async () => {
-    try {
-      setIsLoading(true);
-      const data = await getInventory();
-      setProducts(data);
-      setError(null);
-    } catch (err: unknown) {
-      console.error(err);
-      setError(t.error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => { fetchInventory(); }, []);
 
   const filteredProducts = useMemo(
     () => products.filter((p) => p.name.toLowerCase().includes(search.toLowerCase())),
@@ -161,8 +147,7 @@ export default function InventoryPage() {
   const handleAdjustStock = async (productId: string, change: number) => {
     setIsAdjusting((prev) => ({ ...prev, [productId]: true }));
     try {
-      const updated = await adjustStock(productId, change);
-      setProducts((prev) => prev.map((p) => (p.id === productId ? updated : p)));
+      await adjustStockMutation.mutateAsync({ productId, change });
     } catch (err) {
       console.error(err);
       alert(t.error);
@@ -175,8 +160,7 @@ export default function InventoryPage() {
     const val = minStockValue.trim() === "" ? null : parseFloat(minStockValue);
     if (val !== null && (isNaN(val) || val < 0)) { alert(t.error); return; }
     try {
-      const updated = await updateMinStock(productId, val);
-      setProducts((prev) => prev.map((p) => (p.id === productId ? updated : p)));
+      await updateMinStockMutation.mutateAsync({ productId, minStock: val });
       setEditingMinStockId(null);
     } catch (err) {
       console.error(err);
@@ -187,8 +171,7 @@ export default function InventoryPage() {
   const handleDeleteProduct = async (productId: string) => {
     if (!confirm(t.inventoryDeleteConfirm)) return;
     try {
-      await deleteProduct(productId);
-      setProducts((prev) => prev.filter((p) => p.id !== productId));
+      await deleteProductMutation.mutateAsync(productId);
     } catch (err) {
       console.error(err);
       alert(t.error);
@@ -239,9 +222,9 @@ export default function InventoryPage() {
         />
       </div>
 
-      {error && (
+      {isError && (
         <div className="bg-pastel-pink border-2 border-black rounded-doodle p-4 text-black font-bold shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-          ⚠️ {error}
+          ⚠️ {t.error}
         </div>
       )}
 
