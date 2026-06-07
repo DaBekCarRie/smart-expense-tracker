@@ -1,7 +1,7 @@
 """Google Gemini Vision OCR adapter (free tier, high accuracy).
 
-Sends the receipt image to Gemini 3.1 Flash Lite via REST API.
-Expects a structured JSON response with merchant, amount, currency, and date.
+Primary model: gemini-3.1-flash-lite (500 RPD quota).
+Falls back through gemini-3-flash → gemini-3.5-flash → gemini-2.5-flash → gemini-2.5-flash-lite.
 """
 from __future__ import annotations
 
@@ -183,18 +183,17 @@ def _parse_response(content: str) -> OCRResult:
 class GeminiVisionProvider(OCRProvider):
     """OCR backend using Google Gemini 2.5 Flash via REST API."""
 
-    def __init__(self, api_key: str, model: str = "gemini-2.5-flash") -> None:
+    def __init__(self, api_key: str, model: str = "gemini-3.1-flash-lite") -> None:
         if not api_key:
             raise ValueError("GEMINI_API_KEY must be provided")
         self._api_key = api_key
         self._model = model
-        # Fallback chain — all are real, released Gemini model IDs
         self._models_to_try = [
-            model,
-            "gemini-2.5-flash-lite-preview-06-17",
-            "gemini-2.0-flash",
-            "gemini-2.0-flash-lite",
-            "gemini-1.5-flash",
+            model,               # primary: gemini-3.1-flash-lite (500 RPD)
+            "gemini-3-flash",    # fallback 1
+            "gemini-3.5-flash",  # fallback 2
+            "gemini-2.5-flash",  # fallback 3
+            "gemini-2.5-flash-lite",  # fallback 4
         ]
         # Deduplicate while preserving order
         seen: set[str] = set()
