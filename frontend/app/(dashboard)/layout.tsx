@@ -140,8 +140,11 @@ export default function DashboardLayout({
   useEffect(() => {
     getMe()
       .then(setUser)
-      .catch(() => {
-        router.push("/login");
+      .catch((err: unknown) => {
+        const status = (err as { response?: { status?: number } })?.response?.status;
+        if (status === 401 || status === 403) {
+          router.push("/login");
+        }
       });
 
     const handleProfileUpdate = () => {
