@@ -217,7 +217,7 @@ export function DateInput({
         <div
           data-date-popover
           className={cn(
-            "absolute z-[9999] w-72 bg-white rounded-doodle border-doodle shadow-doodle p-4 mt-1.5",
+            "absolute z-[9999] w-[min(288px,calc(100vw-1.5rem))] bg-white rounded-doodle border-doodle shadow-doodle p-3 sm:p-4 mt-1.5",
             align === "right" ? "right-0" : "left-0",
           )}
         >

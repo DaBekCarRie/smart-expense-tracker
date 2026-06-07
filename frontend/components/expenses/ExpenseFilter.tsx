@@ -126,6 +126,7 @@ export function ExpenseFilter({ filters, categories, isLoadingCategories, onChan
           <DateInput
             value={filters.date_from ?? ""}
             onChange={handleDateFrom}
+            align="right"
           />
         </div>
 
@@ -137,6 +138,7 @@ export function ExpenseFilter({ filters, categories, isLoadingCategories, onChan
           <DateInput
             value={filters.date_to ?? ""}
             onChange={handleDateTo}
+            align="right"
           />
         </div>
 
