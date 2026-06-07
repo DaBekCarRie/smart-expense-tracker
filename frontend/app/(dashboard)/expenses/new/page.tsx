@@ -481,7 +481,7 @@ export default function NewExpensePage() {
 
                   {/* Grand Total Footer */}
                   <div className="flex items-center justify-end gap-4 mt-6 pt-4 border-t-[2.5px] border-black">
-                    <span className="text-[15px] font-bold text-gray-500">{t.newExpenseBillTotal}</span>
+                    <span className="text-[15px] font-bold text-black">{t.newExpenseBillTotal}</span>
                     <div className="bg-highlight rounded-doodle border-[3px] border-black px-5 py-1.5 shadow-doodle-sm text-3xl font-bold">
                       {formatCurrency(itemsTotal, currency)}
                     </div>
@@ -511,7 +511,7 @@ export default function NewExpensePage() {
 
                     {/* Name input */}
                     <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                      <label className="text-[10px] font-bold text-black uppercase tracking-wider">
                         {t.newExpenseColItemName} <span className="text-red-500">*</span>
                       </label>
                       <input
@@ -528,7 +528,7 @@ export default function NewExpensePage() {
                     {/* Quantity & Unit inputs */}
                     <div className="grid grid-cols-2 gap-3">
                       <div className="space-y-1">
-                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                        <label className="text-[10px] font-bold text-black uppercase tracking-wider">
                           {t.newExpenseColQty} <span className="text-red-500">*</span>
                         </label>
                         <input
@@ -544,7 +544,7 @@ export default function NewExpensePage() {
                       </div>
 
                       <div className="space-y-1 relative unit-selector-container">
-                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                        <label className="text-[10px] font-bold text-black uppercase tracking-wider">
                           {t.newExpenseColUnit}
                         </label>
                         <div className="relative flex items-center">
@@ -596,7 +596,7 @@ export default function NewExpensePage() {
                     {/* Price per Unit & Total */}
                     <div className="grid grid-cols-2 gap-3">
                       <div className="space-y-1">
-                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                        <label className="text-[10px] font-bold text-black uppercase tracking-wider">
                           {t.newExpenseColPriceUnit}
                         </label>
                         <input
@@ -612,7 +612,7 @@ export default function NewExpensePage() {
                       </div>
 
                       <div className="space-y-1">
-                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                        <label className="text-[10px] font-bold text-black uppercase tracking-wider">
                           {t.newExpenseColTotal}
                         </label>
                         <div className="bg-highlight rounded-doodle border-2 border-black px-3 h-11 flex items-center justify-end text-right text-base font-bold">
@@ -624,7 +624,7 @@ export default function NewExpensePage() {
                     {/* Expiry date & Category inputs */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div className="space-y-1">
-                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                        <label className="text-[10px] font-bold text-black uppercase tracking-wider">
                           {t.newExpenseColExpiry}
                         </label>
                         <DateInput
@@ -639,7 +639,7 @@ export default function NewExpensePage() {
                       </div>
 
                       <div className="space-y-1">
-                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                        <label className="text-[10px] font-bold text-black uppercase tracking-wider">
                           🏷️ {t.newExpenseColCategory}
                         </label>
                         <Select
@@ -666,7 +666,7 @@ export default function NewExpensePage() {
 
                 {/* Grand Total Footer for Mobile */}
                 <div className="flex items-center justify-between gap-4 mt-6 pt-4 border-t-[2.5px] border-black">
-                  <span className="text-[15px] font-bold text-gray-500">{t.newExpenseBillTotal}</span>
+                  <span className="text-[15px] font-bold text-black">{t.newExpenseBillTotal}</span>
                   <div className="bg-highlight rounded-doodle border-[3px] border-black px-5 py-1.5 shadow-doodle-sm text-2xl font-bold">
                     {formatCurrency(itemsTotal, currency)}
                   </div>
