@@ -34,12 +34,12 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 _ACCESS_COOKIE_OPTS = dict(
     httponly=True,
-    samesite="lax",
+    samesite=settings.COOKIE_SAMESITE,
     secure=settings.COOKIE_SECURE,
 )
 _REFRESH_COOKIE_OPTS = dict(
     httponly=True,
-    samesite="lax",
+    samesite=settings.COOKIE_SAMESITE,
     secure=settings.COOKIE_SECURE,
     max_age=settings.REFRESH_TOKEN_EXPIRE_DAYS * 86400,
     path="/api/v1/auth",  # scope refresh token to auth endpoints only

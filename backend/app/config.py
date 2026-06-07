@@ -20,7 +20,8 @@ class Settings(BaseSettings):
     OPENAI_API_KEY: str = ""
     GEMINI_API_KEY: str = ""
     CORS_ORIGINS: list[str] = ["http://localhost:3000"]
-    COOKIE_SECURE: bool = False  # set True in production (HTTPS)
+    COOKIE_SECURE: bool = False      # set True in production (HTTPS)
+    COOKIE_SAMESITE: str = "lax"    # set "none" in production (cross-origin Vercel ↔ Render)
 
     # Cloudflare R2 / S3 Storage Settings
     R2_ACCOUNT_ID: str = ""
