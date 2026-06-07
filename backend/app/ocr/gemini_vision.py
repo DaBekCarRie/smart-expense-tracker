@@ -1,7 +1,7 @@
 """Google Gemini Vision OCR adapter (free tier, high accuracy).
 
-Primary model: gemini-3.1-flash-lite (500 RPD quota).
-Falls back through gemini-3-flash → gemini-3.5-flash → gemini-2.5-flash → gemini-2.5-flash-lite.
+Sends the receipt image to Gemini 3.1 Flash Lite via REST API.
+Expects a structured JSON response with merchant, amount, currency, and date.
 """
 from __future__ import annotations
 
