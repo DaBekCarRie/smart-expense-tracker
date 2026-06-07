@@ -98,118 +98,88 @@ export default function CategoryBreakdownChart({ expenses, categories }: Props) 
   const activePct = activeEntry ? Math.round((activeEntry.value / total) * 100) : 0;
 
   return (
-    <ResponsiveContainer width="100%" height={280}>
-      <PieChart>
-        <Pie
-          data={data}
-          cx="50%"
-          cy="45%"
-          outerRadius={90}
-          dataKey="value"
-          labelLine={false}
-          stroke="#000"
-          strokeWidth={2}
-          activeIndex={activeIndex}
-          activeShape={renderActiveShape}
-          onClick={handleClick}
-          style={{ cursor: "pointer", outline: "none" }}
-          isAnimationActive={true}
-          animationBegin={0}
-          animationDuration={500}
-          animationEasing="ease-out"
+    <div className="relative">
+      {/* Top-right detail card */}
+      {activeEntry && (
+        <div
+          className="absolute top-0 right-0 z-10 flex flex-col items-end gap-0.5 pointer-events-none"
         >
-          {data.map((entry, index) => (
-            <Cell key={`cell-${index}`} fill={entry.color} />
-          ))}
-        </Pie>
+          <div className="flex items-center gap-1.5">
+            <span className="text-[11px] font-bold text-[#938d81]">{activeEntry.name}</span>
+            <span
+              className="w-2.5 h-2.5 rounded-sm border border-black flex-shrink-0"
+              style={{ backgroundColor: activeEntry.color }}
+            />
+          </div>
+          <span className="text-[15px] font-bold text-[#211f1b] leading-tight">
+            {formatCurrency(activeEntry.value, "USD")}
+          </span>
+          <span className="text-[11px] font-bold text-[#938d81]">{activePct}% of total</span>
+        </div>
+      )}
 
-        {/* Center detail card when a slice is selected */}
-        {activeEntry && (
-          <g style={{ pointerEvents: "none" }}>
-            {/* Frosted background */}
-            <circle cx="50%" cy="45%" r="58" fill="rgba(255,253,247,0.92)" />
-            <circle cx="50%" cy="45%" r="58" fill="none" stroke={activeEntry.color} strokeWidth="2.5" />
+      <ResponsiveContainer width="100%" height={280}>
+        <PieChart>
+          <Pie
+            data={data}
+            cx="50%"
+            cy="45%"
+            outerRadius={90}
+            dataKey="value"
+            labelLine={false}
+            stroke="#000"
+            strokeWidth={2}
+            activeIndex={activeIndex}
+            activeShape={renderActiveShape}
+            onClick={handleClick}
+            style={{ cursor: "pointer", outline: "none" }}
+            isAnimationActive={true}
+            animationBegin={0}
+            animationDuration={500}
+            animationEasing="ease-out"
+          >
+            {data.map((entry, index) => (
+              <Cell key={`cell-${index}`} fill={entry.color} />
+            ))}
+          </Pie>
 
-            {/* Colored category dot */}
-            <circle cx="50%" cy="calc(45% - 28px)" r="5" fill={activeEntry.color} stroke="#000" strokeWidth="1.5" />
-
-            {/* Category name */}
-            <text
-              x="50%"
-              y="45%"
-              textAnchor="middle"
-              fontFamily="var(--font-patrick), cursive"
-            >
-              <tspan
-                x="50%"
-                dy="-1.6em"
-                fontSize="10"
-                fontWeight="bold"
-                fill="#938d81"
-                letterSpacing="0.3"
-              >
-                {activeEntry.name}
-              </tspan>
-              {/* Amount */}
-              <tspan
-                x="50%"
-                dy="1.5em"
-                fontSize="15"
-                fontWeight="bold"
-                fill="#211f1b"
-              >
-                {formatCurrency(activeEntry.value, "USD")}
-              </tspan>
-              {/* Percentage */}
-              <tspan
-                x="50%"
-                dy="1.35em"
-                fontSize="11"
-                fontWeight="bold"
-                fill="#938d81"
-              >
-                {activePct}% of total
-              </tspan>
-            </text>
-          </g>
-        )}
-
-        <Legend
-          verticalAlign="bottom"
-          height={36}
-          content={(props) => {
-            const { payload } = props;
-            return (
-              <ul className="flex flex-wrap justify-center gap-x-4 gap-y-2 mt-4">
-                {payload?.map((entry: any, index: number) => {
-                  const chartData = data[index];
-                  const isActive = activeIndex === index;
-                  return (
-                    <li
-                      key={`item-${index}`}
-                      className="flex items-center gap-1.5 cursor-pointer"
-                      onClick={() => handleClick(null, index)}
-                      style={{ opacity: activeIndex !== undefined && !isActive ? 0.45 : 1 }}
-                    >
-                      <div
-                        className="w-3 h-3 border border-black"
-                        style={{ backgroundColor: entry.color }}
-                      />
-                      <CategoryIcon
-                        name={chartData.name}
-                        icon={chartData.icon}
-                        className="w-3.5 h-3.5"
-                        strokeWidth={2.5}
-                      />
-                      <span className="text-sm font-bold text-black">{chartData.name}</span>
-                    </li>
-                  );
-                })}
-              </ul>
-            );
-          }}
-        />
-      </PieChart>
-    </ResponsiveContainer>
+          <Legend
+            verticalAlign="bottom"
+            height={36}
+            content={(props) => {
+              const { payload } = props;
+              return (
+                <ul className="flex flex-wrap justify-center gap-x-4 gap-y-2 mt-4">
+                  {payload?.map((entry: any, index: number) => {
+                    const chartData = data[index];
+                    const isActive = activeIndex === index;
+                    return (
+                      <li
+                        key={`item-${index}`}
+                        className="flex items-center gap-1.5 cursor-pointer"
+                        onClick={() => handleClick(null, index)}
+                        style={{ opacity: activeIndex !== undefined && !isActive ? 0.45 : 1 }}
+                      >
+                        <div
+                          className="w-3 h-3 border border-black"
+                          style={{ backgroundColor: entry.color }}
+                        />
+                        <CategoryIcon
+                          name={chartData.name}
+                          icon={chartData.icon}
+                          className="w-3.5 h-3.5"
+                          strokeWidth={2.5}
+                        />
+                        <span className="text-sm font-bold text-black">{chartData.name}</span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              );
+            }}
+          />
+        </PieChart>
+      </ResponsiveContainer>
+    </div>
   );
 }
