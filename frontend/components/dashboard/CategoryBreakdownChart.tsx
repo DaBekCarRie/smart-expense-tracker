@@ -94,6 +94,8 @@ export default function CategoryBreakdownChart({ expenses, categories }: Props) 
   }
 
   const activeEntry = activeIndex !== undefined ? data[activeIndex] : null;
+  const total = data.reduce((sum, d) => sum + d.value, 0);
+  const activePct = activeEntry ? Math.round((activeEntry.value / total) * 100) : 0;
 
   return (
     <ResponsiveContainer width="100%" height={280}>
@@ -121,36 +123,55 @@ export default function CategoryBreakdownChart({ expenses, categories }: Props) 
           ))}
         </Pie>
 
-        {/* Center label when a slice is selected */}
+        {/* Center detail card when a slice is selected */}
         {activeEntry && (
-          <text
-            x="50%"
-            y="45%"
-            textAnchor="middle"
-            dominantBaseline="middle"
-            style={{ pointerEvents: "none" }}
-          >
-            <tspan
+          <g style={{ pointerEvents: "none" }}>
+            {/* Frosted background */}
+            <circle cx="50%" cy="45%" r="58" fill="rgba(255,253,247,0.92)" />
+            <circle cx="50%" cy="45%" r="58" fill="none" stroke={activeEntry.color} strokeWidth="2.5" />
+
+            {/* Colored category dot */}
+            <circle cx="50%" cy="calc(45% - 28px)" r="5" fill={activeEntry.color} stroke="#000" strokeWidth="1.5" />
+
+            {/* Category name */}
+            <text
               x="50%"
-              dy="-0.6em"
-              fontSize="11"
-              fontWeight="bold"
-              fill="#938d81"
+              y="45%"
+              textAnchor="middle"
               fontFamily="var(--font-patrick), cursive"
             >
-              {activeEntry.name}
-            </tspan>
-            <tspan
-              x="50%"
-              dy="1.4em"
-              fontSize="14"
-              fontWeight="bold"
-              fill="#211f1b"
-              fontFamily="var(--font-patrick), cursive"
-            >
-              {formatCurrency(activeEntry.value, "USD")}
-            </tspan>
-          </text>
+              <tspan
+                x="50%"
+                dy="-1.6em"
+                fontSize="10"
+                fontWeight="bold"
+                fill="#938d81"
+                letterSpacing="0.3"
+              >
+                {activeEntry.name}
+              </tspan>
+              {/* Amount */}
+              <tspan
+                x="50%"
+                dy="1.5em"
+                fontSize="15"
+                fontWeight="bold"
+                fill="#211f1b"
+              >
+                {formatCurrency(activeEntry.value, "USD")}
+              </tspan>
+              {/* Percentage */}
+              <tspan
+                x="50%"
+                dy="1.35em"
+                fontSize="11"
+                fontWeight="bold"
+                fill="#938d81"
+              >
+                {activePct}% of total
+              </tspan>
+            </text>
+          </g>
         )}
 
         <Legend
