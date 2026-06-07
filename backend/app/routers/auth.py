@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 from app.database import get_db
-from app.dependencies import get_current_user, get_redis
+from app.dependencies import get_current_user
 from app.models.user import User
 from app.schemas.user import (
     TokenResponse,
@@ -19,10 +19,11 @@ from app.schemas.user import (
     ForgotPasswordRequest,
     ResetPasswordRequest,
 )
-from redis.asyncio import Redis
 from app.services.auth_service import (
     create_access_token,
     create_refresh_token,
+    create_reset_token,
+    decode_reset_token,
     decode_token,
     hash_password,
     verify_password,
@@ -152,62 +153,43 @@ async def update_profile(
 async def forgot_password(
     body: ForgotPasswordRequest,
     db: AsyncSession = Depends(get_db),
-    redis: Redis = Depends(get_redis),
 ):
     result = await db.execute(select(User).where(User.email == body.email))
     user = result.scalar_one_or_none()
     if not user:
-        # Return success to prevent email enumeration
-        return {"message": "If the email exists, a reset link will be sent/logged."}
+        return {"message": "If the email exists, a reset link will be sent."}
 
-    token = str(uuid.uuid4())
-    # Save token in redis with TTL of 15 minutes (900 seconds)
-    await redis.setex(f"reset_token:{token}", 900, str(user.id))
-
-    # Send real SMTP email if SMTP is configured
+    token = create_reset_token(str(user.id))
     email_sent = await send_reset_password_email(user.email, token)
 
-    # Log reset link to stdout as fallback/development visibility
     print(
         f"\n========================================\n"
         f"[RESET LINK] {settings.FRONTEND_URL}/reset-password?token={token}\n"
-        f"Email sent successfully: {email_sent}\n"
+        f"Email sent: {email_sent}\n"
         f"========================================\n",
         flush=True,
     )
 
-    return {"message": "If the email exists, a reset link will be sent/logged."}
+    return {"message": "If the email exists, a reset link will be sent."}
 
 
 @router.post("/reset-password")
 async def reset_password(
     body: ResetPasswordRequest,
     db: AsyncSession = Depends(get_db),
-    redis: Redis = Depends(get_redis),
 ):
-    redis_key = f"reset_token:{body.token}"
-    user_id_str = await redis.get(redis_key)
-    if not user_id_str:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid or expired reset token",
-        )
-
-    user_id = uuid.UUID(
-        user_id_str.decode("utf-8") if isinstance(user_id_str, bytes) else user_id_str
-    )
+    user_id = uuid.UUID(decode_reset_token(body.token))
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalar_one_or_none()
     if not user:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="User not found",
+            detail="Invalid or expired reset token",
         )
 
     user.password_hash = hash_password(body.new_password)
     db.add(user)
     await db.commit()
-    await redis.delete(redis_key)
 
     return {"message": "Password updated successfully"}
 

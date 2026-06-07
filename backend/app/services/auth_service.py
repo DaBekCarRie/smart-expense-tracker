@@ -43,3 +43,24 @@ def decode_token(token: str) -> dict:
             detail="Invalid or expired token",
             headers={"WWW-Authenticate": "Bearer"},
         )
+
+
+def create_reset_token(user_id: str) -> str:
+    """Signed JWT reset token — expires in 15 minutes, no Redis required."""
+    expire = datetime.now(timezone.utc) + timedelta(minutes=15)
+    payload = {"sub": user_id, "type": "reset", "exp": expire}
+    return jwt.encode(payload, settings.JWT_SECRET, algorithm=settings.JWT_ALGORITHM)
+
+
+def decode_reset_token(token: str) -> str:
+    """Returns user_id string, or raises 400 if invalid/expired."""
+    try:
+        payload = jwt.decode(token, settings.JWT_SECRET, algorithms=[settings.JWT_ALGORITHM])
+        if payload.get("type") != "reset":
+            raise ValueError("Wrong token type")
+        return payload["sub"]
+    except (JWTError, KeyError, ValueError):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired reset token",
+        )
