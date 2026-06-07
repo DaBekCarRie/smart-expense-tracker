@@ -1,4 +1,4 @@
-import apiClient from "./client";
+import apiClient, { setStoredToken, clearStoredToken } from "./client";
 import type { TokenResponse, User } from "@/types";
 
 export async function login(
@@ -9,6 +9,7 @@ export async function login(
     email,
     password,
   });
+  if (response.data.access_token) setStoredToken(response.data.access_token);
   return response.data;
 }
 
@@ -21,10 +22,12 @@ export async function register(
     "/api/v1/auth/register",
     { email, name, password }
   );
+  if (response.data.access_token) setStoredToken(response.data.access_token);
   return response.data;
 }
 
 export async function logout(): Promise<void> {
+  clearStoredToken();
   await apiClient.post("/api/v1/auth/logout");
 }
 
@@ -55,4 +58,3 @@ export async function resetPassword(
     new_password: newPassword,
   });
 }
-

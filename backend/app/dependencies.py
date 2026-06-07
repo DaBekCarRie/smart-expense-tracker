@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import uuid
 
-from fastapi import Cookie, Depends, HTTPException, status
+from fastapi import Cookie, Depends, Header, HTTPException, status
 from redis.asyncio import Redis
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -18,13 +18,21 @@ async def get_redis() -> Redis:
 
 async def get_current_user(
     access_token: str | None = Cookie(default=None),
+    authorization: str | None = Header(default=None),
     db: AsyncSession = Depends(get_db),
 ):
     from app.models.user import User
 
-    if access_token:
+    # Authorization header takes precedence over cookie.
+    # Safari and Chrome Incognito block cross-origin (third-party) cookies via ITP,
+    # so clients store the token in sessionStorage and send it as a Bearer token.
+    token = access_token
+    if authorization and authorization.startswith("Bearer "):
+        token = authorization[7:]
+
+    if token:
         try:
-            payload = decode_token(access_token)
+            payload = decode_token(token)
             if payload.get("type") == "access" and "sub" in payload:
                 user_id = uuid.UUID(payload["sub"])
                 result = await db.execute(select(User).where(User.id == user_id))
