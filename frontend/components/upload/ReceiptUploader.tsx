@@ -161,14 +161,17 @@ export function ReceiptUploader({ onApply, className }: Props) {
         )}
 
         {uploadState === "done" && (
-          <StatusRow icon={<CheckCircle2 className="h-6 w-6 text-black" strokeWidth={2.5} />}>
-            <span className="text-black font-bold text-lg">{t.uploadDoneState}</span>
+          <div className="flex flex-col items-center gap-1 text-center w-full">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="h-6 w-6 flex-shrink-0 text-black" strokeWidth={2.5} />
+              <span className="text-black font-bold text-lg">{t.uploadDoneState}</span>
+            </div>
             {fileName && (
-              <span className="ml-1.5 text-xs text-gray-700 font-bold truncate max-w-[180px]">
+              <span className="text-xs text-gray-700 font-bold truncate max-w-full px-4">
                 {fileName}
               </span>
             )}
-          </StatusRow>
+          </div>
         )}
 
         {uploadState === "error" && (
