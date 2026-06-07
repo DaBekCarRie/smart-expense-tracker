@@ -138,7 +138,7 @@ export function ExpenseFilter({ filters, categories, isLoadingCategories, onChan
           <DateInput
             value={filters.date_to ?? ""}
             onChange={handleDateTo}
-            align="right"
+            align="left"
           />
         </div>
 
