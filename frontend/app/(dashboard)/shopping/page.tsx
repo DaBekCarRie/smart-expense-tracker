@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useState, useMemo, type FormEvent } from "react";
 import {
-  getShoppingList,
-  createShoppingItem,
-  toggleShoppingItem,
-  deleteShoppingItem,
-  autoGenerateShoppingList,
-} from "@/lib/api/inventory";
+  useShoppingList,
+  useCreateShoppingItem,
+  useToggleShoppingItem,
+  useDeleteShoppingItem,
+  useAutoGenerateShoppingList,
+} from "@/lib/hooks/useInventory";
 import type { ShoppingListItem } from "@/types";
 import { useTranslation } from "@/lib/i18n/LanguageContext";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -83,17 +83,29 @@ function ShoppingSkeleton() {
   );
 }
 
+function sortItems(list: ShoppingListItem[]) {
+  return [...list].sort((a, b) => {
+    if (a.is_purchased === b.is_purchased)
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    return a.is_purchased ? 1 : -1;
+  });
+}
+
 export default function ShoppingListPage() {
   const { t } = useTranslation();
-  const [items, setItems] = useState<ShoppingListItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data: rawItems = [], isLoading, isError } = useShoppingList();
+  const createMutation = useCreateShoppingItem();
+  const toggleMutation = useToggleShoppingItem();
+  const deleteMutation = useDeleteShoppingItem();
+  const autoGenerateMutation = useAutoGenerateShoppingList();
+
+  const items = useMemo(() => sortItems(rawItems), [rawItems]);
+  const isAdding = createMutation.isPending;
+  const isAutoGenerating = autoGenerateMutation.isPending;
 
   const [name, setName] = useState("");
   const [quantity, setQuantity] = useState("1");
   const [unit, setUnit] = useState("");
-  const [isAdding, setIsAdding] = useState(false);
-  const [isAutoGenerating, setIsAutoGenerating] = useState(false);
   const [openDropdown, setOpenDropdown] = useState(false);
 
   // Custom Toast State
@@ -127,58 +139,25 @@ export default function ShoppingListPage() {
     return () => document.removeEventListener("click", handleDocumentClick);
   }, []);
 
-  const fetchList = async () => {
-    try {
-      setIsLoading(true);
-      const data = await getShoppingList();
-      setItems(sortItems(data));
-      setError(null);
-    } catch (err) {
-      console.error(err);
-      setError(t.error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const sortItems = (list: ShoppingListItem[]) => {
-    return [...list].sort((a, b) => {
-      if (a.is_purchased === b.is_purchased)
-        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-      return a.is_purchased ? 1 : -1;
-    });
-  };
-
-  useEffect(() => { fetchList(); }, []);
 
   const handleCreateItem = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!name.trim()) return;
     const qtyVal = parseFloat(quantity);
-    if (isNaN(qtyVal) || qtyVal <= 0) {
-      showToast(t.error, "", "destructive");
-      return;
-    }
-    setIsAdding(true);
+    if (isNaN(qtyVal) || qtyVal <= 0) { showToast(t.error, "", "destructive"); return; }
     try {
-      const newItem = await createShoppingItem(name.trim(), qtyVal, unit.trim() || t.inventoryUnit);
-      setItems((prev) => sortItems([newItem, ...prev]));
-      setName("");
-      setQuantity("1");
-      setUnit("");
+      await createMutation.mutateAsync({ name: name.trim(), quantity: qtyVal, unit: unit.trim() || t.inventoryUnit });
+      setName(""); setQuantity("1"); setUnit("");
       showToast(t.success, "", "success");
     } catch (err) {
       console.error(err);
       showToast(t.error, "", "destructive");
-    } finally {
-      setIsAdding(false);
     }
   };
 
   const handleToggleItem = async (itemId: string) => {
     try {
-      const updated = await toggleShoppingItem(itemId);
-      setItems((prev) => sortItems(prev.map((item) => (item.id === itemId ? updated : item))));
+      await toggleMutation.mutateAsync(itemId);
     } catch (err) {
       console.error(err);
       showToast(t.error, "", "destructive");
@@ -187,8 +166,7 @@ export default function ShoppingListPage() {
 
   const handleDeleteItem = async (itemId: string) => {
     try {
-      await deleteShoppingItem(itemId);
-      setItems((prev) => prev.filter((item) => item.id !== itemId));
+      await deleteMutation.mutateAsync(itemId);
     } catch (err) {
       console.error(err);
       showToast(t.error, "", "destructive");
@@ -196,30 +174,20 @@ export default function ShoppingListPage() {
   };
 
   const handleAutoGenerate = async () => {
-    setIsAutoGenerating(true);
-    setError(null);
     try {
-      const newItems = await autoGenerateShoppingList();
+      const newItems = await autoGenerateMutation.mutateAsync();
       if (newItems.length === 0) {
-        showToast(
-          t.shoppingAutoGenerateEmptyTitle,
-          t.shoppingAutoGenerateEmptyDesc,
-          "default"
-        );
+        showToast(t.shoppingAutoGenerateEmptyTitle, t.shoppingAutoGenerateEmptyDesc, "default");
       } else {
         showToast(
           t.shoppingAutoGenerateSuccessTitle,
           t.shoppingAutoGenerateSuccessDesc.replace("{count}", String(newItems.length)),
           "success"
         );
-        fetchList();
       }
     } catch (err) {
       console.error(err);
-      setError(t.error);
       showToast(t.error, "", "destructive");
-    } finally {
-      setIsAutoGenerating(false);
     }
   };
 
@@ -250,9 +218,9 @@ export default function ShoppingListPage() {
         </div>
       </div>
 
-      {error && (
+      {isError && (
         <div className="bg-pastel-pink border-2 border-black rounded-doodle p-4 text-black font-bold shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-          ⚠️ {error}
+          ⚠️ {t.error}
         </div>
       )}
 

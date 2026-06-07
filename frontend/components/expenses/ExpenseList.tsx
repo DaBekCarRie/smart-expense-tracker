@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { memo, useState } from "react";
 import type { Expense, ExpenseItemOut, Category } from "@/types";
 import { formatCurrency, formatDate } from "@/lib/utils/formatters";
 import { cn } from "@/lib/utils/cn";
@@ -62,7 +62,7 @@ function getUniqueItemCategories(items: ExpenseItemOut[] | undefined): Category[
   return result;
 }
 
-export function ExpenseList({ expenses, isLoading, onDelete, pendingDeleteId, onCancelDelete }: Props) {
+export const ExpenseList = memo(function ExpenseList({ expenses, isLoading, onDelete, pendingDeleteId, onCancelDelete }: Props) {
   const { t } = useTranslation();
   const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
   const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null);
@@ -645,4 +645,4 @@ export function ExpenseList({ expenses, isLoading, onDelete, pendingDeleteId, on
       </Dialog>
     </>
   );
-}
+});

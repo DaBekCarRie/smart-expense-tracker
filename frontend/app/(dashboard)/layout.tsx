@@ -3,8 +3,8 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getMe, logout } from "@/lib/api/auth";
-import type { User } from "@/types";
 import { useTranslation } from "@/lib/i18n/LanguageContext";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SkeletonOverlay } from "@/components/ui/LoadingStates";
@@ -134,29 +134,33 @@ export default function DashboardLayout({
   const { t } = useTranslation();
   const router = useRouter();
   const pathname = usePathname();
-  const [user, setUser] = useState<User | null>(null);
+  const queryClient = useQueryClient();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
+  const { data: user, isError, error } = useQuery({
+    queryKey: ["user"],
+    queryFn: getMe,
+    staleTime: 60_000,
+    gcTime: 5 * 60_000,
+    retry: false,
+  });
+
   useEffect(() => {
-    getMe()
-      .then(setUser)
-      .catch((err: unknown) => {
-        const status = (err as { response?: { status?: number } })?.response?.status;
-        if (status === 401 || status === 403) {
-          router.push("/login");
-        }
-      });
+    if (isError) {
+      const status = (error as { response?: { status?: number } })?.response?.status;
+      if (status === 401 || status === 403) {
+        router.push("/login");
+      }
+    }
+  }, [isError, error, router]);
 
+  useEffect(() => {
     const handleProfileUpdate = () => {
-      console.log("Profile updated, fetching latest info...");
-      getMe().then(setUser).catch(() => {});
+      void queryClient.invalidateQueries({ queryKey: ["user"] });
     };
-
     window.addEventListener("profile-updated", handleProfileUpdate);
-    return () => {
-      window.removeEventListener("profile-updated", handleProfileUpdate);
-    };
-  }, [router]);
+    return () => window.removeEventListener("profile-updated", handleProfileUpdate);
+  }, [queryClient]);
 
   if (!user) {
     return <SkeletonOverlay />;
