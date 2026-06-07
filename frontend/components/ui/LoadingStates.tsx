@@ -101,7 +101,7 @@ export function OCROverlay({ uploadState }: OCROverlayProps) {
   const isStep3Active = step3Active;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#f4f1e8]/88 backdrop-blur-[5px]">
+    <div className="fixed inset-0 md:absolute md:inset-0 z-50 flex items-center justify-center bg-[#f4f1e8]/88 backdrop-blur-[5px] md:rounded-doodle">
       <div className="border-2 border-black rounded-[14px_9px_15px_8px_/_9px_15px_8px_14px] bg-[#fffdf7] shadow-[4px_5px_0px_0px_rgba(0,0,0,1)] px-9 py-7 flex flex-col items-center gap-[18px] max-w-[320px] w-[92%] text-center">
         <p className="text-sm font-bold text-[#938d81]">{titleText}</p>
         
