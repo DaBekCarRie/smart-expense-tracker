@@ -119,7 +119,7 @@ export default function CategoryBreakdownChart({ expenses, categories }: Props) 
       )}
 
       <ResponsiveContainer width="100%" height={280}>
-        <PieChart>
+        <PieChart style={{ outline: "none" }}>
           <Pie
             data={data}
             cx="50%"
