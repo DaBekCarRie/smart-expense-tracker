@@ -194,7 +194,7 @@ export default function NewExpensePage() {
   const isLoading = createExpense.isPending;
 
   return (
-    <div className="max-w-5xl mx-auto flex flex-col gap-6 py-8 px-5 lg:px-0">
+    <div className="relative max-w-5xl mx-auto flex flex-col gap-6 py-8 px-5 lg:px-0">
       {isLoading && <SpinnerOverlay />}
       {/* Breadcrumb & Title */}
       <div>
@@ -339,28 +339,181 @@ export default function NewExpensePage() {
           </div>
 
           {items.length === 0 ? (
-            <div className="text-center py-12 bg-[#fbf8ef] rounded-doodle border-2 border-black border-dashed text-gray-500 font-bold">
+            <div className="text-center py-8 px-6 bg-[#fbf8ef] rounded-doodle border-2 border-black border-dashed text-gray-500 font-bold leading-relaxed">
               {t.newExpenseNoItems}
             </div>
           ) : (
-            <div className="overflow-x-auto pb-4">
-              <div className="min-w-[860px]">
-                {/* Header */}
-                <div className="grid grid-cols-[2fr_.7fr_1fr_.95fr_1fr_1.15fr_1.4fr_34px] gap-2.5 items-center px-1 pb-3 mb-1 border-b-[2.5px] border-black">
-                  <div className="text-[12px] font-bold text-gray-400 text-center">{t.newExpenseColItemName}</div>
-                  <div className="text-[12px] font-bold text-gray-400 text-center">{t.newExpenseColQty}</div>
-                  <div className="text-[12px] font-bold text-gray-400 text-center">{t.newExpenseColUnit}</div>
-                  <div className="text-[12px] font-bold text-gray-400 text-center">{t.newExpenseColPriceUnit}</div>
-                  <div className="text-[12px] font-bold text-gray-400 text-center">{t.newExpenseColTotal}</div>
-                  <div className="text-[12px] font-bold text-gray-400 text-center">{t.newExpenseColExpiry}</div>
-                  <div className="text-[12px] font-bold text-gray-400 text-center">🏷️ {t.newExpenseColCategory}</div>
-                  <div></div>
-                </div>
+            <>
+              {/* Desktop View */}
+              <div className="hidden md:block overflow-x-auto pb-4">
+                <div className="min-w-[860px]">
+                  {/* Header */}
+                  <div className="grid grid-cols-[2fr_.7fr_1fr_.95fr_1fr_1.15fr_1.4fr_34px] gap-2.5 items-center px-1 pb-3 mb-1 border-b-[2.5px] border-black">
+                    <div className="text-[12px] font-bold text-gray-400 text-center">{t.newExpenseColItemName}</div>
+                    <div className="text-[12px] font-bold text-gray-400 text-center">{t.newExpenseColQty}</div>
+                    <div className="text-[12px] font-bold text-gray-400 text-center">{t.newExpenseColUnit}</div>
+                    <div className="text-[12px] font-bold text-gray-400 text-center">{t.newExpenseColPriceUnit}</div>
+                    <div className="text-[12px] font-bold text-gray-400 text-center">{t.newExpenseColTotal}</div>
+                    <div className="text-[12px] font-bold text-gray-400 text-center">{t.newExpenseColExpiry}</div>
+                    <div className="text-[12px] font-bold text-gray-400 text-center">🏷️ {t.newExpenseColCategory}</div>
+                    <div></div>
+                  </div>
 
-                {/* Rows */}
-                <div className="space-y-0">
-                  {items.map((item, idx) => (
-                    <div key={idx} className="grid grid-cols-[2fr_.7fr_1fr_.95fr_1fr_1.15fr_1.4fr_34px] gap-2.5 items-center py-3 px-1 border-b-2 border-black border-dashed last:border-b-0">
+                  {/* Rows */}
+                  <div className="space-y-0">
+                    {items.map((item, idx) => (
+                      <div key={idx} className="grid grid-cols-[2fr_.7fr_1fr_.95fr_1fr_1.15fr_1.4fr_34px] gap-2.5 items-center py-3 px-1 border-b-2 border-black border-dashed last:border-b-0">
+                        <input
+                          type="text"
+                          required
+                          value={item.name}
+                          placeholder="Item name…"
+                          onChange={(e) => handleItemChange(idx, "name", e.target.value)}
+                          className="w-full bg-white rounded-doodle-input border-2 border-black px-3 py-2 text-base font-bold focus:outline-none focus:shadow-doodle-sm"
+                          disabled={isLoading}
+                        />
+                        <input
+                          type="number"
+                          required
+                          min="0.01"
+                          step="any"
+                          value={item.quantity}
+                          onChange={(e) => handleItemChange(idx, "quantity", e.target.value)}
+                          className="w-full bg-[#fbf8ef] rounded-doodle-input border-2 border-black px-1.5 py-2 text-base font-bold text-center focus:outline-none focus:shadow-doodle-sm"
+                          disabled={isLoading}
+                        />
+                        <div className="relative unit-selector-container w-full">
+                          <div className="relative flex items-center">
+                            <input
+                              type="text"
+                              required
+                              value={item.unit || ""}
+                              placeholder={t.newExpenseColUnit}
+                              onChange={(e) => handleItemChange(idx, "unit", e.target.value)}
+                              onFocus={() => setOpenDropdownIdx(idx)}
+                              className="w-full bg-[#fbf8ef] rounded-doodle-input border-2 border-black pl-2 pr-7 py-2 text-sm font-bold text-center focus:outline-none focus:shadow-doodle-sm"
+                              disabled={isLoading}
+                            />
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setOpenDropdownIdx(openDropdownIdx === idx ? null : idx);
+                              }}
+                              disabled={isLoading}
+                              className="absolute right-2 text-black hover:scale-110 transition-transform active:scale-95 flex items-center justify-center"
+                            >
+                              <ChevronDown className="w-4 h-4" strokeWidth={2.5} />
+                            </button>
+                          </div>
+                          {openDropdownIdx === idx && (
+                            <div className="absolute left-0 mt-1.5 w-full min-w-[120px] bg-white border-2 border-black rounded-doodle-input shadow-doodle z-50 max-h-[200px] overflow-y-auto">
+                              {UNIT_KEYS.map((u) => {
+                                const label = t[UNIT_LABEL_KEY[u]];
+                                return (
+                                  <button
+                                    key={u}
+                                    type="button"
+                                    onClick={() => {
+                                      handleItemChange(idx, "unit", label);
+                                      setOpenDropdownIdx(null);
+                                    }}
+                                    className="w-full text-left px-3 py-1.5 text-sm font-bold text-black hover:bg-highlight transition-colors border-b last:border-b-0 border-black/10"
+                                  >
+                                    {label}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                        <input
+                          type="number"
+                          required
+                          min="0"
+                          step="0.01"
+                          value={item.unit_price}
+                          onChange={(e) => handleItemChange(idx, "unit_price", e.target.value)}
+                          className="w-full bg-[#fbf8ef] rounded-doodle-input border-2 border-black px-2 py-2 text-[15px] font-bold text-right focus:outline-none focus:shadow-doodle-sm"
+                          disabled={isLoading}
+                        />
+                        <div className="bg-highlight rounded-doodle border-2 border-black px-2.5 py-2 text-right text-lg font-bold">
+                          {(Number(item.price || 0)).toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                        </div>
+                        <DateInput
+                          value={item.expiry_date || ""}
+                          onChange={(iso) => handleItemChange(idx, "expiry_date", iso || null)}
+                          disabled={isLoading}
+                          placeholder="Expiry date"
+                          align="right"
+                          className="w-full"
+                        />
+                        {/* Category select per item */}
+                        <Select
+                          value={String(item.category_id ?? "none")}
+                          onValueChange={(val) => handleItemChange(idx, "category_id", val === "none" ? null : Number(val))}
+                          disabled={isLoading}
+                        >
+                          <SelectTrigger className="h-[38px] text-xs font-bold bg-[#fbf8ef] border-2 border-black px-2">
+                            <SelectValue placeholder="—" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none" className="font-bold text-xs">—</SelectItem>
+                            {(categories ?? []).map((cat) => (
+                              <SelectItem key={cat.id} value={String(cat.id)} className="font-bold text-xs">
+                                {cat.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveItem(idx)}
+                          disabled={isLoading}
+                          className="w-8 h-8 flex items-center justify-center text-red-500 hover:scale-110 transition-transform active:scale-95"
+                          title="ลบรายการ"
+                        >
+                          <Trash2 className="w-4.5 h-4.5" strokeWidth={2.5} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Grand Total Footer */}
+                  <div className="flex items-center justify-end gap-4 mt-6 pt-4 border-t-[2.5px] border-black">
+                    <span className="text-[15px] font-bold text-gray-500">{t.newExpenseBillTotal}</span>
+                    <div className="bg-highlight rounded-doodle border-[3px] border-black px-5 py-1.5 shadow-doodle-sm text-3xl font-bold">
+                      {formatCurrency(itemsTotal, currency)}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Mobile View */}
+              <div className="block md:hidden space-y-4">
+                {items.map((item, idx) => (
+                  <div key={idx} className="bg-[#fbf8ef] rounded-doodle border-2 border-black shadow-doodle p-4 space-y-3 relative">
+                    {/* Header: Item # with Delete */}
+                    <div className="flex justify-between items-center pb-2 border-b border-black/10">
+                      <span className="font-bold text-sm text-black">
+                        #{idx + 1} {item.name ? `- ${item.name}` : ""}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveItem(idx)}
+                        disabled={isLoading}
+                        className="w-9 h-9 flex items-center justify-center text-red-500 border border-black/30 rounded-doodle hover:border-black hover:bg-pastel-pink transition-all active:scale-95"
+                        title="ลบรายการ"
+                      >
+                        <Trash2 className="w-4 h-4" strokeWidth={2} />
+                      </button>
+                    </div>
+
+                    {/* Name input */}
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                        {t.newExpenseColItemName} <span className="text-red-500">*</span>
+                      </label>
                       <input
                         type="text"
                         required
@@ -370,17 +523,30 @@ export default function NewExpensePage() {
                         className="w-full bg-white rounded-doodle-input border-2 border-black px-3 py-2 text-base font-bold focus:outline-none focus:shadow-doodle-sm"
                         disabled={isLoading}
                       />
-                      <input
-                        type="number"
-                        required
-                        min="0.01"
-                        step="any"
-                        value={item.quantity}
-                        onChange={(e) => handleItemChange(idx, "quantity", e.target.value)}
-                        className="w-full bg-[#fbf8ef] rounded-doodle-input border-2 border-black px-1.5 py-2 text-base font-bold text-center focus:outline-none focus:shadow-doodle-sm"
-                        disabled={isLoading}
-                      />
-                      <div className="relative unit-selector-container w-full">
+                    </div>
+
+                    {/* Quantity & Unit inputs */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                          {t.newExpenseColQty} <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="number"
+                          required
+                          min="0.01"
+                          step="any"
+                          value={item.quantity}
+                          onChange={(e) => handleItemChange(idx, "quantity", e.target.value)}
+                          className="w-full h-11 bg-white rounded-doodle-input border-2 border-black px-2 py-1 text-base font-bold text-center focus:outline-none focus:shadow-doodle-sm"
+                          disabled={isLoading}
+                        />
+                      </div>
+
+                      <div className="space-y-1 relative unit-selector-container">
+                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                          {t.newExpenseColUnit}
+                        </label>
                         <div className="relative flex items-center">
                           <input
                             type="text"
@@ -389,7 +555,7 @@ export default function NewExpensePage() {
                             placeholder={t.newExpenseColUnit}
                             onChange={(e) => handleItemChange(idx, "unit", e.target.value)}
                             onFocus={() => setOpenDropdownIdx(idx)}
-                            className="w-full bg-[#fbf8ef] rounded-doodle-input border-2 border-black pl-2 pr-7 py-2 text-sm font-bold text-center focus:outline-none focus:shadow-doodle-sm"
+                            className="w-full h-11 bg-white rounded-doodle-input border-2 border-black pl-2 pr-7 py-1 text-sm font-bold text-center focus:outline-none focus:shadow-doodle-sm"
                             disabled={isLoading}
                           />
                           <button
@@ -405,7 +571,7 @@ export default function NewExpensePage() {
                           </button>
                         </div>
                         {openDropdownIdx === idx && (
-                          <div className="absolute left-0 mt-1.5 w-full min-w-[120px] bg-white border-2 border-black rounded-doodle-input shadow-doodle z-50 max-h-[200px] overflow-y-auto">
+                          <div className="absolute left-0 mt-1.5 w-full min-w-[120px] bg-white border-2 border-black rounded-doodle-input shadow-doodle z-50 max-h-[160px] overflow-y-auto">
                             {UNIT_KEYS.map((u) => {
                               const label = t[UNIT_LABEL_KEY[u]];
                               return (
@@ -425,67 +591,88 @@ export default function NewExpensePage() {
                           </div>
                         )}
                       </div>
-                      <input
-                        type="number"
-                        required
-                        min="0"
-                        step="0.01"
-                        value={item.unit_price}
-                        onChange={(e) => handleItemChange(idx, "unit_price", e.target.value)}
-                        className="w-full bg-[#fbf8ef] rounded-doodle-input border-2 border-black px-2 py-2 text-[15px] font-bold text-right focus:outline-none focus:shadow-doodle-sm"
-                        disabled={isLoading}
-                      />
-                      <div className="bg-highlight rounded-doodle border-2 border-black px-2.5 py-2 text-right text-lg font-bold">
-                        {(Number(item.price || 0)).toLocaleString("en-US", { minimumFractionDigits: 2 })}
-                      </div>
-                      <DateInput
-                        value={item.expiry_date || ""}
-                        onChange={(iso) => handleItemChange(idx, "expiry_date", iso || null)}
-                        disabled={isLoading}
-                        placeholder="Expiry date"
-                        align="right"
-                        className="w-full"
-                      />
-                      {/* Category select per item */}
-                      <Select
-                        value={String(item.category_id ?? "none")}
-                        onValueChange={(val) => handleItemChange(idx, "category_id", val === "none" ? null : Number(val))}
-                        disabled={isLoading}
-                      >
-                        <SelectTrigger className="h-[38px] text-xs font-bold bg-[#fbf8ef] border-2 border-black px-2">
-                          <SelectValue placeholder="—" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="none" className="font-bold text-xs">—</SelectItem>
-                          {(categories ?? []).map((cat) => (
-                            <SelectItem key={cat.id} value={String(cat.id)} className="font-bold text-xs">
-                              {cat.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveItem(idx)}
-                        disabled={isLoading}
-                        className="w-8 h-8 flex items-center justify-center text-red-500 hover:scale-110 transition-transform active:scale-95"
-                        title="ลบรายการ"
-                      >
-                        <Trash2 className="w-4.5 h-4.5" strokeWidth={2.5} />
-                      </button>
                     </div>
-                  ))}
-                </div>
 
-                {/* Grand Total Footer */}
-                <div className="flex items-center justify-end gap-4 mt-6 pt-4 border-t-[2.5px] border-black">
+                    {/* Price per Unit & Total */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                          {t.newExpenseColPriceUnit}
+                        </label>
+                        <input
+                          type="number"
+                          required
+                          min="0"
+                          step="0.01"
+                          value={item.unit_price}
+                          onChange={(e) => handleItemChange(idx, "unit_price", e.target.value)}
+                          className="w-full h-11 bg-white rounded-doodle-input border-2 border-black px-2 py-1 text-[15px] font-bold text-right focus:outline-none focus:shadow-doodle-sm"
+                          disabled={isLoading}
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                          {t.newExpenseColTotal}
+                        </label>
+                        <div className="bg-highlight rounded-doodle border-2 border-black px-3 h-11 flex items-center justify-end text-right text-base font-bold">
+                          {(Number(item.price || 0)).toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Expiry date & Category inputs */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                          {t.newExpenseColExpiry}
+                        </label>
+                        <DateInput
+                          value={item.expiry_date || ""}
+                          onChange={(iso) => handleItemChange(idx, "expiry_date", iso || null)}
+                          disabled={isLoading}
+                          placeholder="Expiry date"
+                          align="right"
+                          className="w-full"
+                          buttonClassName="h-11 text-sm bg-white"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                          🏷️ {t.newExpenseColCategory}
+                        </label>
+                        <Select
+                          value={String(item.category_id ?? "none")}
+                          onValueChange={(val) => handleItemChange(idx, "category_id", val === "none" ? null : Number(val))}
+                          disabled={isLoading}
+                        >
+                          <SelectTrigger className="h-11 text-xs font-bold bg-white border-2 border-black px-2">
+                            <SelectValue placeholder="—" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none" className="font-bold text-xs">—</SelectItem>
+                            {(categories ?? []).map((cat) => (
+                              <SelectItem key={cat.id} value={String(cat.id)} className="font-bold text-xs">
+                                {cat.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+
+                {/* Grand Total Footer for Mobile */}
+                <div className="flex items-center justify-between gap-4 mt-6 pt-4 border-t-[2.5px] border-black">
                   <span className="text-[15px] font-bold text-gray-500">{t.newExpenseBillTotal}</span>
-                  <div className="bg-highlight rounded-doodle border-[3px] border-black px-5 py-1.5 shadow-doodle-sm text-3xl font-bold">
+                  <div className="bg-highlight rounded-doodle border-[3px] border-black px-5 py-1.5 shadow-doodle-sm text-2xl font-bold">
                     {formatCurrency(itemsTotal, currency)}
                   </div>
                 </div>
               </div>
-            </div>
+            </>
           )}
         </section>
 
@@ -512,19 +699,19 @@ export default function NewExpensePage() {
         )}
 
         {/* Actions */}
-        <div className="grid grid-cols-2 gap-4 pt-2 mb-12">
+        <div className="grid grid-cols-2 gap-3 pt-2 mb-12">
           <button
             type="button"
             onClick={() => router.back()}
             disabled={isLoading}
-            className="rounded-doodle-2 border-[2.5px] border-black bg-[#fffdf7] px-6 py-4 text-xl font-bold text-black shadow-doodle hover:translate-y-[-1px] hover:shadow-[5px_6px_0px_0px_rgba(0,0,0,1)] active:translate-y-[2px] active:shadow-none transition-all"
+            className="rounded-doodle-2 border-[2.5px] border-black bg-[#fffdf7] px-3 py-2.5 sm:px-6 sm:py-4 text-base sm:text-xl font-bold text-black shadow-doodle hover:translate-y-[-1px] hover:shadow-[5px_6px_0px_0px_rgba(0,0,0,1)] active:translate-y-[2px] active:shadow-none transition-all"
           >
             {t.expensesCancel}
           </button>
           <button
             type="submit"
             disabled={isLoading}
-            className="rounded-doodle-2 border-[2.5px] border-black bg-pastel-blue px-6 py-4 text-xl font-bold text-black shadow-doodle hover:translate-y-[-1px] hover:shadow-[5px_6px_0px_0px_rgba(0,0,0,1)] active:translate-y-[2px] active:shadow-none transition-all"
+            className="rounded-doodle-2 border-[2.5px] border-black bg-pastel-blue px-3 py-2.5 sm:px-6 sm:py-4 text-base sm:text-xl font-bold text-black shadow-doodle hover:translate-y-[-1px] hover:shadow-[5px_6px_0px_0px_rgba(0,0,0,1)] active:translate-y-[2px] active:shadow-none transition-all"
           >
             {isLoading ? t.newExpenseSaving : t.newExpenseSave}
           </button>
