@@ -251,246 +251,450 @@ export default function InventoryPage() {
           <p className="text-sm text-gray-500 mt-1">{t.inventoryAutoCreatedNote}</p>
         </div>
       ) : (
-        <div className="bg-[#fffdf7] rounded-doodle border-[3px] border-black shadow-[6px_7px_0px_0px_rgba(0,0,0,1)] overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse">
-              <thead>
-                <tr className="bg-black text-white">
-                  <th className="text-left text-[11px] font-bold uppercase tracking-widest px-4 py-3 whitespace-nowrap">
-                    {t.inventoryProductName}
-                  </th>
-                  <th className="text-center text-[11px] font-bold uppercase tracking-widest px-4 py-3 whitespace-nowrap">
-                    {t.inventoryCurrentStockLabel}
-                  </th>
-                  <th className="text-left text-[11px] font-bold uppercase tracking-widest px-4 py-3 whitespace-nowrap">
-                    {t.inventoryMinStock}
-                  </th>
-                  <th className="text-right text-[11px] font-bold uppercase tracking-widest px-4 py-3 whitespace-nowrap">
-                    {t.inventoryLastPrice}
-                  </th>
-                  <th className="text-right text-[11px] font-bold uppercase tracking-widest px-4 py-3 whitespace-nowrap">
-                    {t.inventoryAvgPrice}
-                  </th>
-                  <th className="text-center text-[11px] font-bold uppercase tracking-widest px-4 py-3 whitespace-nowrap">
-                    {t.inventoryBatches}
-                  </th>
-                  <th className="text-center text-[11px] font-bold uppercase tracking-widest px-4 py-3 whitespace-nowrap">
-                    Adjust
-                  </th>
-                  <th className="text-center text-[11px] font-bold uppercase tracking-widest px-4 py-3 whitespace-nowrap">
-                    {t.inventoryDelete}
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredProducts.map((product, idx) => {
-                  const isLow = product.min_stock !== null && product.current_stock < product.min_stock;
-                  const hasExpiryWarning = product.batches.some(
-                    (b) => getExpiryStatus(b.expiry_date) === "expired" || getExpiryStatus(b.expiry_date) === "soon"
-                  );
-                  const isExpanded = expandedProductId === product.id;
-                  const isLast = idx === filteredProducts.length - 1;
+        <>
+          {/* Desktop View */}
+          <div className="hidden md:block bg-[#fffdf7] rounded-doodle border-[3px] border-black shadow-[6px_7px_0px_0px_rgba(0,0,0,1)] overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="bg-black text-white">
+                    <th className="text-left text-[11px] font-bold uppercase tracking-widest px-4 py-3 whitespace-nowrap">
+                      {t.inventoryProductName}
+                    </th>
+                    <th className="text-center text-[11px] font-bold uppercase tracking-widest px-4 py-3 whitespace-nowrap">
+                      {t.inventoryCurrentStockLabel}
+                    </th>
+                    <th className="text-left text-[11px] font-bold uppercase tracking-widest px-4 py-3 whitespace-nowrap">
+                      {t.inventoryMinStock}
+                    </th>
+                    <th className="text-right text-[11px] font-bold uppercase tracking-widest px-4 py-3 whitespace-nowrap">
+                      {t.inventoryLastPrice}
+                    </th>
+                    <th className="text-right text-[11px] font-bold uppercase tracking-widest px-4 py-3 whitespace-nowrap">
+                      {t.inventoryAvgPrice}
+                    </th>
+                    <th className="text-center text-[11px] font-bold uppercase tracking-widest px-4 py-3 whitespace-nowrap">
+                      {t.inventoryBatches}
+                    </th>
+                    <th className="text-center text-[11px] font-bold uppercase tracking-widest px-4 py-3 whitespace-nowrap">
+                      Adjust
+                    </th>
+                    <th className="text-center text-[11px] font-bold uppercase tracking-widest px-4 py-3 whitespace-nowrap">
+                      {t.inventoryDelete}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredProducts.map((product, idx) => {
+                    const isLow = product.min_stock !== null && product.current_stock < product.min_stock;
+                    const hasExpiryWarning = product.batches.some(
+                      (b) => getExpiryStatus(b.expiry_date) === "expired" || getExpiryStatus(b.expiry_date) === "soon"
+                    );
+                    const isExpanded = expandedProductId === product.id;
+                    const isLast = idx === filteredProducts.length - 1;
 
-                  return (
-                    <>
-                      {/* Main product row */}
-                      <tr
-                        key={product.id}
-                        className={`transition-colors ${isLow ? "bg-[#fefce8]" : "bg-[#fffdf7] hover:bg-[#fffbe8]"} ${!isLast || isExpanded ? "border-b-2 border-black/10" : ""}`}
-                      >
-                        {/* Product name + badges */}
-                        <td className="px-4 py-3 min-w-[160px]">
-                          <div className="font-bold text-[15px] text-black">{product.name}</div>
-                          <div className="flex flex-wrap gap-1.5 mt-1.5">
-                            {isLow && (
-                              <span className="inline-flex items-center text-[10px] font-bold px-2 py-0.5 rounded-full bg-pastel-yellow border border-black">
-                                ⚠ {t.inventoryLowStock}
-                              </span>
-                            )}
-                            {hasExpiryWarning && (
-                              <span className="inline-flex items-center text-[10px] font-bold px-2 py-0.5 rounded-full bg-pastel-pink border border-black animate-pulse">
-                                ⚠ {t.inventoryExpiringAlert}
-                              </span>
-                            )}
-                          </div>
-                        </td>
-
-                        {/* Current stock */}
-                        <td className="px-4 py-3 text-center whitespace-nowrap">
-                          <span className="text-xl font-bold text-black">{product.current_stock}</span>
-                          <span className="text-xs text-gray-500 font-semibold ml-1">{product.unit}</span>
-                        </td>
-
-                        {/* Min stock — view / edit */}
-                        <td className="px-4 py-3 min-w-[140px]">
-                          {editingMinStockId === product.id ? (
-                            <div className="flex items-center gap-1.5">
-                              <input
-                                type="number"
-                                step="any"
-                                value={minStockValue}
-                                onChange={(e) => setMinStockValue(e.target.value)}
-                                placeholder={t.inventoryNotSet}
-                                className="w-16 rounded-doodle border-2 border-black px-2 py-1 text-xs font-bold focus:outline-none"
-                              />
-                              <button
-                                onClick={() => handleSaveMinStock(product.id)}
-                                className="px-2 py-1 text-[11px] font-bold rounded-doodle bg-pastel-green border-2 border-black shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] hover:bg-green-300 active:translate-y-[1px] active:shadow-none transition-all"
-                              >
-                                {t.inventorySave}
-                              </button>
-                              <button
-                                onClick={() => setEditingMinStockId(null)}
-                                className="px-2 py-1 text-[11px] font-bold rounded-doodle bg-gray-200 border-2 border-black shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] hover:bg-gray-300 active:translate-y-[1px] active:shadow-none transition-all"
-                              >
-                                ✕
-                              </button>
+                    return (
+                      <>
+                        {/* Main product row */}
+                        <tr
+                          key={product.id}
+                          className={`transition-colors ${isLow ? "bg-[#fefce8]" : "bg-[#fffdf7] hover:bg-[#fffbe8]"} ${!isLast || isExpanded ? "border-b-2 border-black/10" : ""}`}
+                        >
+                          {/* Product name + badges */}
+                          <td className="px-4 py-3 min-w-[160px]">
+                            <div className="font-bold text-[15px] text-black">{product.name}</div>
+                            <div className="flex flex-wrap gap-1.5 mt-1.5">
+                              {isLow && (
+                                <span className="inline-flex items-center text-[10px] font-bold px-2 py-0.5 rounded-full bg-pastel-yellow border border-black">
+                                  ⚠ {t.inventoryLowStock}
+                                </span>
+                              )}
+                              {hasExpiryWarning && (
+                                <span className="inline-flex items-center text-[10px] font-bold px-2 py-0.5 rounded-full bg-pastel-pink border border-black animate-pulse">
+                                  ⚠ {t.inventoryExpiringAlert}
+                                </span>
+                              )}
                             </div>
-                          ) : (
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm font-bold text-black">
-                                {product.min_stock !== null
-                                  ? `${product.min_stock} ${product.unit}`
-                                  : <span className="text-gray-400 italic font-normal text-xs">{t.inventoryNotSet}</span>}
-                              </span>
-                              <button
-                                onClick={() => {
-                                  setEditingMinStockId(product.id);
-                                  setMinStockValue(product.min_stock !== null ? String(product.min_stock) : "");
-                                }}
-                                className="text-[11px] font-bold px-2 py-0.5 rounded-doodle border-2 border-transparent hover:border-black hover:bg-[#fffdf0] transition-all"
-                              >
-                                ✏️ {t.inventoryEdit}
-                              </button>
-                            </div>
-                          )}
-                        </td>
+                          </td>
 
-                        {/* Last price */}
-                        <td className="px-4 py-3 text-right whitespace-nowrap">
-                          <span className="text-sm font-bold text-black">
-                            {formatCurrency(Number(product.last_price), "THB")}
-                          </span>
-                        </td>
+                          {/* Current stock */}
+                          <td className="px-4 py-3 text-center whitespace-nowrap">
+                            <span className="text-xl font-bold text-black">{product.current_stock}</span>
+                            <span className="text-xs text-gray-500 font-semibold ml-1">{product.unit}</span>
+                          </td>
 
-                        {/* Avg price */}
-                        <td className="px-4 py-3 text-right whitespace-nowrap">
-                          <span className="text-sm font-bold text-black">
-                            {formatCurrency(Number(product.average_price), "THB")}
-                          </span>
-                        </td>
-
-                        {/* Batches toggle */}
-                        <td className="px-4 py-3 text-center whitespace-nowrap">
-                          <button
-                            onClick={() => setExpandedProductId(isExpanded ? null : product.id)}
-                            className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-doodle border-2 border-black bg-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:bg-[#fffdf0] active:translate-y-[1px] active:shadow-none transition-all"
-                          >
-                            📦 {product.batches.length}
-                            <span>{isExpanded ? "▲" : "▼"}</span>
-                          </button>
-                        </td>
-
-                        {/* Adjust −/+ */}
-                        <td className="px-4 py-3 text-center whitespace-nowrap">
-                          <div className="inline-flex items-center gap-1.5">
-                            <button
-                              onClick={() => handleAdjustStock(product.id, -1)}
-                              disabled={product.current_stock <= 0 || isAdjusting[product.id]}
-                              className="w-8 h-8 rounded-doodle bg-pastel-pink border-2 border-black font-bold text-lg flex items-center justify-center shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:bg-pink-300 disabled:opacity-40 active:translate-y-[1px] active:shadow-none transition-all"
-                            >
-                              −
-                            </button>
-                            <button
-                              onClick={() => handleAdjustStock(product.id, 1)}
-                              disabled={isAdjusting[product.id]}
-                              className="w-8 h-8 rounded-doodle bg-pastel-green border-2 border-black font-bold text-lg flex items-center justify-center shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:bg-green-300 disabled:opacity-40 active:translate-y-[1px] active:shadow-none transition-all"
-                            >
-                              +
-                            </button>
-                          </div>
-                        </td>
-
-                        {/* Delete */}
-                        <td className="px-4 py-3 text-center">
-                          <button
-                            onClick={() => handleDeleteProduct(product.id)}
-                            className="w-8 h-8 flex items-center justify-center rounded-doodle border-2 border-transparent text-gray-400 hover:border-black hover:bg-pastel-pink hover:text-black transition-all mx-auto"
-                            title={t.inventoryDelete}
-                          >
-                            <Trash2 className="w-4 h-4" strokeWidth={2.5} />
-                          </button>
-                        </td>
-                      </tr>
-
-                      {/* Expanded batch sub-row */}
-                      {isExpanded && (
-                        <tr key={`${product.id}-batches`} className="bg-[#f7f3ec]">
-                          <td colSpan={8} className="px-6 py-4 border-b-2 border-black/10">
-                            {product.batches.length === 0 ? (
-                              <p className="text-xs text-gray-500 italic font-bold">{t.inventoryNoBatchData}</p>
+                          {/* Min stock — view / edit */}
+                          <td className="px-4 py-3 min-w-[140px]">
+                            {editingMinStockId === product.id ? (
+                              <div className="flex items-center gap-1.5">
+                                <input
+                                  type="number"
+                                  step="any"
+                                  value={minStockValue}
+                                  onChange={(e) => setMinStockValue(e.target.value)}
+                                  placeholder={t.inventoryNotSet}
+                                  className="w-16 rounded-doodle border-2 border-black px-2 py-1 text-xs font-bold focus:outline-none"
+                                />
+                                <button
+                                  onClick={() => handleSaveMinStock(product.id)}
+                                  className="px-2 py-1 text-[11px] font-bold rounded-doodle bg-pastel-green border-2 border-black shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] hover:bg-green-300 active:translate-y-[1px] active:shadow-none transition-all"
+                                >
+                                  {t.inventorySave}
+                                </button>
+                                <button
+                                  onClick={() => setEditingMinStockId(null)}
+                                  className="px-2 py-1 text-[11px] font-bold rounded-doodle bg-gray-200 border-2 border-black shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] hover:bg-gray-300 active:translate-y-[1px] active:shadow-none transition-all"
+                                >
+                                  ✕
+                                </button>
+                              </div>
                             ) : (
-                              <table className="w-full border-collapse text-xs">
-                                <thead>
-                                  <tr className="border-b-2 border-dashed border-black/30">
-                                    <th className="text-left font-bold text-[10px] uppercase tracking-wider text-gray-500 pb-2 pr-6">{t.inventoryQuantity}</th>
-                                    <th className="text-left font-bold text-[10px] uppercase tracking-wider text-gray-500 pb-2 pr-6">Received</th>
-                                    <th className="text-left font-bold text-[10px] uppercase tracking-wider text-gray-500 pb-2 pr-6">Expires</th>
-                                    <th className="text-left font-bold text-[10px] uppercase tracking-wider text-gray-500 pb-2">Status</th>
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  {product.batches.map((batch) => {
-                                    const status = getExpiryStatus(batch.expiry_date);
-                                    const rowBg =
-                                      status === "expired" ? "bg-pastel-pink/60" :
-                                      status === "soon"    ? "bg-pastel-orange/60" : "";
-                                    const statusLabel =
-                                      status === "expired" ? t.inventoryBatchExpiredLabel :
-                                      status === "soon"    ? t.inventoryBatchExpiringSoonLabel : null;
-                                    const statusBadgeCls =
-                                      status === "expired" ? "bg-pastel-pink border-black" :
-                                      status === "soon"    ? "bg-pastel-orange border-black" :
-                                      "bg-pastel-green border-black";
-
-                                    return (
-                                      <tr key={batch.id} className={`border-b border-dashed border-black/10 last:border-b-0 ${rowBg}`}>
-                                        <td className="py-2 pr-6 font-bold">{batch.quantity} {product.unit}</td>
-                                        <td className="py-2 pr-6 text-gray-600 font-semibold">
-                                          {new Date(batch.created_at).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}
-                                        </td>
-                                        <td className="py-2 pr-6 font-bold">
-                                          {batch.expiry_date
-                                            ? new Date(batch.expiry_date).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
-                                            : <span className="text-gray-400 italic font-normal text-xs">{t.inventoryNotSet}</span>}
-                                        </td>
-                                        <td className="py-2">
-                                          {statusLabel ? (
-                                            <span className={`inline-flex items-center text-[10px] font-bold px-2 py-0.5 rounded-full border ${statusBadgeCls}`}>
-                                              {statusLabel}
-                                            </span>
-                                          ) : (
-                                            <span className="inline-flex items-center text-[10px] font-bold px-2 py-0.5 rounded-full border bg-pastel-green border-black">
-                                              ✓ OK
-                                            </span>
-                                          )}
-                                        </td>
-                                      </tr>
-                                    );
-                                  })}
-                                </tbody>
-                              </table>
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm font-bold text-black">
+                                  {product.min_stock !== null
+                                    ? `${product.min_stock} ${product.unit}`
+                                    : <span className="text-gray-400 italic font-normal text-xs">{t.inventoryNotSet}</span>}
+                                </span>
+                                <button
+                                  onClick={() => {
+                                    setEditingMinStockId(product.id);
+                                    setMinStockValue(product.min_stock !== null ? String(product.min_stock) : "");
+                                  }}
+                                  className="text-[11px] font-bold px-2 py-0.5 rounded-doodle border-2 border-transparent hover:border-black hover:bg-[#fffdf0] transition-all"
+                                >
+                                  ✏️ {t.inventoryEdit}
+                                </button>
+                              </div>
                             )}
                           </td>
+
+                          {/* Last price */}
+                          <td className="px-4 py-3 text-right whitespace-nowrap">
+                            <span className="text-sm font-bold text-black">
+                              {formatCurrency(Number(product.last_price), "THB")}
+                            </span>
+                          </td>
+
+                          {/* Avg price */}
+                          <td className="px-4 py-3 text-right whitespace-nowrap">
+                            <span className="text-sm font-bold text-black">
+                              {formatCurrency(Number(product.average_price), "THB")}
+                            </span>
+                          </td>
+
+                          {/* Batches toggle */}
+                          <td className="px-4 py-3 text-center whitespace-nowrap">
+                            <button
+                              onClick={() => setExpandedProductId(isExpanded ? null : product.id)}
+                              className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-doodle border-2 border-black bg-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:bg-[#fffdf0] active:translate-y-[1px] active:shadow-none transition-all"
+                            >
+                              📦 {product.batches.length}
+                              <span>{isExpanded ? "▲" : "▼"}</span>
+                            </button>
+                          </td>
+
+                          {/* Adjust −/+ */}
+                          <td className="px-4 py-3 text-center whitespace-nowrap">
+                            <div className="inline-flex items-center gap-1.5">
+                              <button
+                                onClick={() => handleAdjustStock(product.id, -1)}
+                                disabled={product.current_stock <= 0 || isAdjusting[product.id]}
+                                className="w-8 h-8 rounded-doodle bg-pastel-pink border-2 border-black font-bold text-lg flex items-center justify-center shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:bg-pink-300 disabled:opacity-40 active:translate-y-[1px] active:shadow-none transition-all"
+                              >
+                                −
+                              </button>
+                              <button
+                                onClick={() => handleAdjustStock(product.id, 1)}
+                                disabled={isAdjusting[product.id]}
+                                className="w-8 h-8 rounded-doodle bg-pastel-green border-2 border-black font-bold text-lg flex items-center justify-center shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:bg-green-300 disabled:opacity-40 active:translate-y-[1px] active:shadow-none transition-all"
+                              >
+                                +
+                              </button>
+                            </div>
+                          </td>
+
+                          {/* Delete */}
+                          <td className="px-4 py-3 text-center">
+                            <button
+                              onClick={() => handleDeleteProduct(product.id)}
+                              className="w-8 h-8 flex items-center justify-center rounded-doodle border-2 border-transparent text-gray-400 hover:border-black hover:bg-pastel-pink hover:text-black transition-all mx-auto"
+                              title={t.inventoryDelete}
+                            >
+                              <Trash2 className="w-4 h-4" strokeWidth={2.5} />
+                            </button>
+                          </td>
                         </tr>
-                      )}
-                    </>
-                  );
-                })}
-              </tbody>
-            </table>
+
+                        {/* Expanded batch sub-row */}
+                        {isExpanded && (
+                          <tr key={`${product.id}-batches`} className="bg-[#f7f3ec]">
+                            <td colSpan={8} className="px-6 py-4 border-b-2 border-black/10">
+                              {product.batches.length === 0 ? (
+                                <p className="text-xs text-gray-500 italic font-bold">{t.inventoryNoBatchData}</p>
+                              ) : (
+                                <table className="w-full border-collapse text-xs">
+                                  <thead>
+                                    <tr className="border-b-2 border-dashed border-black/30">
+                                      <th className="text-left font-bold text-[10px] uppercase tracking-wider text-gray-500 pb-2 pr-6">{t.inventoryQuantity}</th>
+                                      <th className="text-left font-bold text-[10px] uppercase tracking-wider text-gray-500 pb-2 pr-6">Received</th>
+                                      <th className="text-left font-bold text-[10px] uppercase tracking-wider text-gray-500 pb-2 pr-6">Expires</th>
+                                      <th className="text-left font-bold text-[10px] uppercase tracking-wider text-gray-500 pb-2">Status</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {product.batches.map((batch) => {
+                                      const status = getExpiryStatus(batch.expiry_date);
+                                      const rowBg =
+                                        status === "expired" ? "bg-pastel-pink/60" :
+                                        status === "soon"    ? "bg-pastel-orange/60" : "";
+                                      const statusLabel =
+                                        status === "expired" ? t.inventoryBatchExpiredLabel :
+                                        status === "soon"    ? t.inventoryBatchExpiringSoonLabel : null;
+                                      const statusBadgeCls =
+                                        status === "expired" ? "bg-pastel-pink border-black" :
+                                        status === "soon"    ? "bg-pastel-orange border-black" :
+                                        "bg-pastel-green border-black";
+
+                                      return (
+                                        <tr key={batch.id} className={`border-b border-dashed border-black/10 last:border-b-0 ${rowBg}`}>
+                                          <td className="py-2 pr-6 font-bold">{batch.quantity} {product.unit}</td>
+                                          <td className="py-2 pr-6 text-gray-600 font-semibold">
+                                            {new Date(batch.created_at).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}
+                                          </td>
+                                          <td className="py-2 pr-6 font-bold">
+                                            {batch.expiry_date
+                                              ? new Date(batch.expiry_date).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
+                                              : <span className="text-gray-400 italic font-normal text-xs">{t.inventoryNotSet}</span>}
+                                          </td>
+                                          <td className="py-2">
+                                            {statusLabel ? (
+                                              <span className={`inline-flex items-center text-[10px] font-bold px-2 py-0.5 rounded-full border ${statusBadgeCls}`}>
+                                                {statusLabel}
+                                              </span>
+                                            ) : (
+                                              <span className="inline-flex items-center text-[10px] font-bold px-2 py-0.5 rounded-full border bg-pastel-green border-black">
+                                                ✓ OK
+                                              </span>
+                                            )}
+                                          </td>
+                                        </tr>
+                                      );
+                                    })}
+                                  </tbody>
+                                </table>
+                              )}
+                            </td>
+                          </tr>
+                        )}
+                      </>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
+
+          {/* Mobile View */}
+          <div className="block md:hidden space-y-4">
+            {filteredProducts.map((product) => {
+              const isLow = product.min_stock !== null && product.current_stock < product.min_stock;
+              const hasExpiryWarning = product.batches.some(
+                (b) => getExpiryStatus(b.expiry_date) === "expired" || getExpiryStatus(b.expiry_date) === "soon"
+              );
+              const isExpanded = expandedProductId === product.id;
+
+              return (
+                <div
+                  key={product.id}
+                  className={`rounded-doodle border-2 border-black shadow-doodle p-4 transition-colors ${
+                    isLow ? "bg-[#fefce8]" : "bg-[#fffdf7]"
+                  }`}
+                >
+                  {/* Product Name & Badges & Delete */}
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h3 className="font-bold text-lg text-black">{product.name}</h3>
+                      <div className="flex flex-wrap gap-1.5 mt-1.5">
+                        {isLow && (
+                          <span className="inline-flex items-center text-[10px] font-bold px-2 py-0.5 rounded-full bg-pastel-yellow border border-black">
+                            ⚠ {t.inventoryLowStock}
+                          </span>
+                        )}
+                        {hasExpiryWarning && (
+                          <span className="inline-flex items-center text-[10px] font-bold px-2 py-0.5 rounded-full bg-pastel-pink border border-black animate-pulse">
+                            ⚠ {t.inventoryExpiringAlert}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    
+                    {/* Delete Button */}
+                    <button
+                      onClick={() => handleDeleteProduct(product.id)}
+                      className="w-10 h-10 flex items-center justify-center rounded-doodle border border-black hover:bg-pastel-pink hover:text-black transition-all text-gray-400"
+                      title={t.inventoryDelete}
+                    >
+                      <Trash2 className="w-5 h-5" strokeWidth={2.5} />
+                    </button>
+                  </div>
+
+                  {/* Stocks Info (Current & Min) */}
+                  <div className="grid grid-cols-2 gap-4 my-4 bg-black/5 p-3 rounded-doodle-2 border border-black/10">
+                    <div>
+                      <div className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">{t.inventoryCurrentStockLabel}</div>
+                      <div className="mt-1 flex items-baseline">
+                        <span className="text-2xl font-bold text-black">{product.current_stock}</span>
+                        <span className="text-xs text-gray-600 font-semibold ml-1">{product.unit}</span>
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">{t.inventoryMinStock}</div>
+                      <div className="mt-1 flex items-baseline">
+                        {editingMinStockId === product.id ? (
+                          <div className="flex items-center gap-1">
+                            <input
+                              type="number"
+                              step="any"
+                              value={minStockValue}
+                              onChange={(e) => setMinStockValue(e.target.value)}
+                              placeholder={t.inventoryNotSet}
+                              className="w-16 rounded-doodle border border-black px-1.5 py-0.5 text-xs font-bold focus:outline-none bg-white"
+                            />
+                            <button
+                              onClick={() => handleSaveMinStock(product.id)}
+                              className="px-2 py-1 text-[10px] font-bold rounded-doodle bg-pastel-green border border-black shadow-doodle-sm active:translate-y-[1px] active:shadow-none transition-all"
+                            >
+                              {t.inventorySave}
+                            </button>
+                            <button
+                              onClick={() => setEditingMinStockId(null)}
+                              className="px-2 py-1 text-[10px] font-bold rounded-doodle bg-gray-200 border border-black shadow-doodle-sm active:translate-y-[1px] active:shadow-none transition-all"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-lg font-bold text-black">
+                              {product.min_stock !== null
+                                ? `${product.min_stock} ${product.unit}`
+                                : <span className="text-gray-400 italic font-normal text-xs">{t.inventoryNotSet}</span>}
+                            </span>
+                            <button
+                              onClick={() => {
+                                setEditingMinStockId(product.id);
+                                setMinStockValue(product.min_stock !== null ? String(product.min_stock) : "");
+                              }}
+                              className="text-[10px] font-bold px-1.5 py-0.5 rounded-doodle border border-black/30 hover:border-black hover:bg-white"
+                            >
+                              ✏️
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Prices Info */}
+                  <div className="grid grid-cols-2 gap-4 mb-4 text-xs font-semibold text-gray-700">
+                    <div>
+                      <span className="text-gray-500 font-bold mr-1">{t.inventoryLastPrice}:</span>
+                      <span className="text-black font-bold">{formatCurrency(Number(product.last_price), "THB")}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-500 font-bold mr-1">{t.inventoryAvgPrice}:</span>
+                      <span className="text-black font-bold">{formatCurrency(Number(product.average_price), "THB")}</span>
+                    </div>
+                  </div>
+
+                  {/* Actions (Inline Adjustments + Expand Batches) */}
+                  <div className="flex justify-between items-center gap-3">
+                    {/* Batches Toggle Button */}
+                    <button
+                      onClick={() => setExpandedProductId(isExpanded ? null : product.id)}
+                      className="inline-flex items-center gap-1 text-xs font-bold px-3 py-2.5 rounded-doodle border-2 border-black bg-white shadow-doodle hover:bg-[#fffdf0] active:translate-y-[1px] active:shadow-none transition-all"
+                    >
+                      📦 {product.batches.length}
+                      <span>{isExpanded ? "▲" : "▼"}</span>
+                    </button>
+
+                    {/* Adjust Buttons with touch target sizes of 44px x 44px */}
+                    <div className="inline-flex items-center gap-2">
+                      <button
+                        onClick={() => handleAdjustStock(product.id, -1)}
+                        disabled={product.current_stock <= 0 || isAdjusting[product.id]}
+                        className="w-11 h-11 rounded-doodle bg-pastel-pink border-2 border-black font-bold text-xl flex items-center justify-center shadow-doodle hover:bg-pink-300 disabled:opacity-40 active:translate-y-[1px] active:shadow-none transition-all"
+                      >
+                        −
+                      </button>
+                      <button
+                        onClick={() => handleAdjustStock(product.id, 1)}
+                        disabled={isAdjusting[product.id]}
+                        className="w-11 h-11 rounded-doodle bg-pastel-green border-2 border-black font-bold text-xl flex items-center justify-center shadow-doodle hover:bg-green-300 disabled:opacity-40 active:translate-y-[1px] active:shadow-none transition-all"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Expired Batches Accordion */}
+                  {isExpanded && (
+                    <div className="mt-4 p-3 bg-[#f7f3ec] rounded-doodle border border-black/20 text-xs animate-fadeIn">
+                      {product.batches.length === 0 ? (
+                        <p className="text-xs text-gray-500 italic font-bold">{t.inventoryNoBatchData}</p>
+                      ) : (
+                        <div className="space-y-2">
+                          <div className="grid grid-cols-4 font-bold text-[10px] uppercase tracking-wider text-gray-500 border-b border-black/10 pb-1">
+                            <div>Qty</div>
+                            <div className="col-span-2">Received & Expires</div>
+                            <div className="text-right">Status</div>
+                          </div>
+                          {product.batches.map((batch) => {
+                            const status = getExpiryStatus(batch.expiry_date);
+                            const rowBg =
+                              status === "expired" ? "bg-pastel-pink/60" :
+                              status === "soon"    ? "bg-pastel-orange/60" : "";
+                            const statusLabel =
+                              status === "expired" ? t.inventoryBatchExpiredLabel :
+                              status === "soon"    ? t.inventoryBatchExpiringSoonLabel : null;
+                            const statusBadgeCls =
+                              status === "expired" ? "bg-pastel-pink border-black" :
+                              status === "soon"    ? "bg-pastel-orange border-black" :
+                              "bg-pastel-green border-black";
+
+                            return (
+                              <div key={batch.id} className={`grid grid-cols-4 items-center gap-1 py-1.5 border-b border-dashed border-black/10 last:border-0 rounded p-1 ${rowBg}`}>
+                                <div className="font-bold">{batch.quantity} {product.unit}</div>
+                                <div className="col-span-2 text-gray-600 font-semibold leading-tight text-[11px]">
+                                  <div>Rec: {new Date(batch.created_at).toLocaleDateString("en-GB", { day: "2-digit", month: "short" })}</div>
+                                  <div>Exp: {batch.expiry_date
+                                    ? new Date(batch.expiry_date).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "2-digit" })
+                                    : <span className="text-gray-400 italic font-normal">{t.inventoryNotSet}</span>}</div>
+                                </div>
+                                <div className="text-right">
+                                  {statusLabel ? (
+                                    <span className={`inline-flex items-center text-[9px] font-bold px-1.5 py-0.5 rounded border ${statusBadgeCls}`}>
+                                      {statusLabel}
+                                    </span>
+                                  ) : (
+                                    <span className="inline-flex items-center text-[9px] font-bold px-1.5 py-0.5 rounded border bg-pastel-green border-black">
+                                      ✓ OK
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </>
       )}
     </div>
   );

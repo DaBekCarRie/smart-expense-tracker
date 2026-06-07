@@ -104,9 +104,9 @@ export default function DashboardPage() {
   const isLoading = expensesLoading || categoriesLoading;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-5xl mx-auto">
       <div>
-        <h1 className="text-2xl font-bold text-black tracking-wide">{t.dashboardTitle}</h1>
+        <h1 className="text-xl sm:text-2xl font-bold text-black tracking-wide">{t.dashboardTitle}</h1>
         <p className="text-sm font-bold text-gray-600 mt-0.5">
           {t.dashboardOverview}
         </p>
@@ -182,15 +182,15 @@ export default function DashboardPage() {
 
       {/* Charts row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-paper rounded-doodle border-doodle shadow-doodle p-5">
-          <h2 className="text-lg font-bold text-black tracking-wide mb-4">
+        <div className="bg-paper rounded-doodle border-doodle shadow-doodle p-4 sm:p-5 overflow-x-auto">
+          <h2 className="text-base sm:text-lg font-bold text-black tracking-wide mb-4">
             {t.dashboardMonthlySpending}
           </h2>
           <MonthlySummaryChart expenses={expenses} />
         </div>
 
-        <div className="bg-paper rounded-doodle border-doodle shadow-doodle p-5">
-          <h2 className="text-lg font-bold text-black tracking-wide mb-4">
+        <div className="bg-paper rounded-doodle border-doodle shadow-doodle p-4 sm:p-5 overflow-x-auto">
+          <h2 className="text-base sm:text-lg font-bold text-black tracking-wide mb-4">
             {t.dashboardSpendingByCategory}
           </h2>
           <CategoryBreakdownChart

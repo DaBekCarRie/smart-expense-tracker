@@ -121,7 +121,7 @@ export function ExpenseList({ expenses, isLoading, onDelete, pendingDeleteId, on
 
   return (
     <>
-      <div className="bg-paper rounded-doodle border-doodle shadow-doodle overflow-hidden">
+      <div className="hidden md:block bg-paper rounded-doodle border-doodle shadow-doodle overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-base">
             <thead>
@@ -136,7 +136,7 @@ export function ExpenseList({ expenses, isLoading, onDelete, pendingDeleteId, on
                   Amount
                 </th>
                 <th className="px-4 py-3 text-left font-bold text-black uppercase tracking-wider">
-                  🏷️ Item Categories
+                  Item Categories
                 </th>
                 {onDelete && (
                   <th className="px-4 py-3 text-right font-bold text-black uppercase tracking-wider">
@@ -237,19 +237,19 @@ export function ExpenseList({ expenses, isLoading, onDelete, pendingDeleteId, on
                       {onDelete && (
                         <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
                           {pendingDeleteId === expense.id ? (
-                            <span className="inline-flex items-center gap-2">
+                            <span className="inline-flex flex-wrap items-center gap-2 justify-end">
                               <button
                                 onClick={() => onDelete(expense.id)}
-                                className="text-sm text-red-600 font-bold hover:text-red-800 transition-colors underline decoration-2 underline-offset-4"
+                                className="text-xs sm:text-sm text-red-600 font-bold hover:text-red-800 transition-colors underline decoration-2 underline-offset-4 whitespace-nowrap"
                                 title="ลบข้อมูลใบเสร็จนี้รวมถึงสินค้าที่ถูกนำเข้าคลังด้วย"
                               >
-                                ⚠️ Confirm (will also delete inventory)
+                                ⚠️ {t.expensesDeleteConfirm}
                               </button>
                               <button
                                 onClick={onCancelDelete}
-                                className="text-sm text-gray-500 font-bold hover:text-black transition-colors"
+                                className="text-xs sm:text-sm text-gray-500 font-bold hover:text-black transition-colors"
                               >
-                                Cancel
+                                {t.expensesCancel}
                               </button>
                             </span>
                           ) : (
@@ -269,6 +269,120 @@ export function ExpenseList({ expenses, isLoading, onDelete, pendingDeleteId, on
             </tbody>
           </table>
         </div>
+      </div>
+
+      {/* Mobile Card List View */}
+      <div className="block md:hidden space-y-4">
+        {isLoading ? (
+          <>
+            <div className="border-2 border-black rounded-doodle p-4 bg-white shadow-doodle-sm animate-pulse space-y-3">
+              <div className="flex justify-between">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-5 w-20" />
+              </div>
+              <Skeleton className="h-6 w-32" />
+              <Skeleton className="h-5 w-28" />
+            </div>
+            <div className="border-2 border-black rounded-doodle p-4 bg-white shadow-doodle-sm animate-pulse space-y-3">
+              <div className="flex justify-between">
+                <Skeleton className="h-4 w-20" />
+                <Skeleton className="h-5 w-24" />
+              </div>
+              <Skeleton className="h-6 w-28" />
+              <Skeleton className="h-5 w-20" />
+            </div>
+          </>
+        ) : expenses.length === 0 ? (
+          <div className="text-center py-12 bg-white rounded-doodle border-2 border-black shadow-doodle p-6">
+            <svg className="w-8 h-8 text-black mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+            </svg>
+            <span className="font-bold text-gray-500">No expenses found</span>
+          </div>
+        ) : (
+          expenses.map((expense) => {
+            const uniqueCats = getUniqueItemCategories(expense.items);
+            return (
+              <div
+                key={expense.id}
+                onClick={() => setSelectedExpense(expense)}
+                className="border-2 border-black rounded-doodle p-4 bg-white shadow-doodle-sm active:translate-y-[2px] active:shadow-none hover:bg-paper transition-all cursor-pointer space-y-3"
+              >
+                <div className="flex justify-between items-start gap-2">
+                  <span className="text-sm font-bold text-gray-500">{formatDate(expense.expense_date)}</span>
+                  <span className="text-lg font-bold text-black font-sans">{formatCurrency(expense.amount, expense.currency)}</span>
+                </div>
+                
+                <div className="flex items-center gap-2">
+                  {expense.receipt_url && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setPreviewImageUrl(`${baseUrl}${expense.receipt_url}`);
+                      }}
+                      className="text-black hover:text-blue-600 transition-colors p-1 flex-shrink-0"
+                      title="View receipt"
+                    >
+                      <ImageIcon className="w-4 h-4" strokeWidth={2.5} />
+                    </button>
+                  )}
+                  <div className="font-bold text-black truncate text-base">
+                    {expense.merchant}
+                    {expense.notes && (
+                      <span className="ml-1.5 text-xs text-gray-500 font-sans font-normal truncate block sm:inline">
+                        — {expense.notes}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex justify-between items-center gap-2 pt-1 border-t border-dashed border-black/10">
+                  <div className="flex flex-wrap gap-1.5 max-w-[70%]">
+                    {uniqueCats.map((cat) => (
+                      <span
+                        key={cat.id}
+                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-doodle border border-black text-[10px] font-bold text-black"
+                        style={{ backgroundColor: cat.color }}
+                      >
+                        <CategoryIcon name={cat.name} icon={cat.icon} className="w-2.5 h-2.5" />
+                        {cat.name}
+                      </span>
+                    ))}
+                  </div>
+                  {onDelete && (
+                    <div onClick={(e) => e.stopPropagation()} className="flex justify-end flex-shrink-0">
+                      {pendingDeleteId === expense.id ? (
+                        <div className="flex items-center gap-2 bg-pastel-pink border border-black rounded-doodle px-2 py-1 shadow-doodle-sm animate-in zoom-in-95">
+                          <button
+                            onClick={() => onDelete(expense.id)}
+                            className="text-xs text-black font-bold hover:underline"
+                            title="ลบข้อมูลใบเสร็จนี้รวมถึงสินค้าที่ถูกนำเข้าคลังด้วย"
+                          >
+                            ⚠️ Del
+                          </button>
+                          <button
+                            onClick={onCancelDelete}
+                            className="text-xs text-gray-500 font-bold"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => onDelete(expense.id)}
+                          className="px-2.5 py-1 text-xs font-bold text-red-600 border border-transparent hover:border-black hover:bg-pastel-pink rounded-doodle transition-all"
+                        >
+                          Delete
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })
+        )}
       </div>
 
       {/* Image Preview Dialog */}

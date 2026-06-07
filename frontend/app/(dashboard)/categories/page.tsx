@@ -104,6 +104,7 @@ export default function CategoriesPage() {
   const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null);
   const [isSeeding, setIsSeeding] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
 
   async function handleCreate(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -130,6 +131,7 @@ export default function CategoriesPage() {
     const name = editName.trim();
     if (!name) return;
 
+    setIsUpdating(true);
     try {
       await apiClient.put(`/api/v1/categories/${editingId}`, {
         name,
@@ -140,6 +142,8 @@ export default function CategoriesPage() {
       setEditingId(null);
     } catch {
       setFormError(t.error);
+    } finally {
+      setIsUpdating(false);
     }
   }
 
@@ -222,10 +226,10 @@ export default function CategoriesPage() {
     <div className="max-w-5xl mx-auto space-y-8">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-black tracking-tight">
+          <h1 className="text-xl sm:text-3xl font-bold text-black tracking-tight">
             {t.categoriesTitle}
           </h1>
-          <p className="text-base font-bold text-gray-600 mt-1">
+          <p className="text-sm sm:text-base font-bold text-gray-600 mt-1">
             {t.categoriesDescription}
           </p>
         </div>
@@ -386,21 +390,24 @@ export default function CategoriesPage() {
               <div className="flex flex-col gap-3">
                 <button
                   type="submit"
-                  disabled={createCategory.isPending}
+                  disabled={createCategory.isPending || isUpdating}
                   className={cn(
-                    "w-full px-6 py-3 rounded-doodle text-lg font-bold text-black shadow-doodle border-doodle transition-all active:translate-y-[2px] active:shadow-none hover:translate-y-[-2px]",
+                    "w-full px-6 py-3 rounded-doodle text-lg font-bold text-black shadow-doodle border-doodle transition-all active:translate-y-[2px] active:shadow-none hover:translate-y-[-2px] disabled:opacity-60 disabled:cursor-not-allowed",
                     editingId
                       ? "bg-pastel-yellow hover:bg-yellow-300"
                       : "bg-pastel-blue hover:bg-blue-300"
                   )}
                 >
-                  {editingId ? t.categoriesUpdateButton : t.categoriesAddNew}
+                  {editingId
+                    ? (isUpdating ? t.loading : t.categoriesUpdateButton)
+                    : (createCategory.isPending ? t.loading : t.categoriesAddNew)}
                 </button>
                 {editingId && (
                   <button
                     type="button"
                     onClick={() => setEditingId(null)}
-                    className="w-full px-6 py-2 rounded-doodle bg-paper text-base font-bold text-gray-600 border-doodle hover:bg-paper transition-all"
+                    disabled={isUpdating}
+                    className="w-full px-6 py-2 rounded-doodle bg-paper text-base font-bold text-gray-600 border-doodle hover:bg-paper transition-all disabled:opacity-50"
                   >
                     {t.categoriesCancelEdit}
                   </button>

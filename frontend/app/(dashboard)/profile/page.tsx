@@ -9,30 +9,27 @@ import { LanguageSwitcher } from "@/components/layout/LanguageSwitcher";
 import { Skeleton } from "@/components/ui/skeleton";
 
 function ProfileSkeleton() {
-  const { t } = useTranslation();
   return (
-    <div className="flex-1 p-6 md:p-10 bg-[#f2ede0] overflow-y-auto min-h-screen animate-fadeIn">
-      <div className="max-w-5xl mx-auto space-y-8">
-        <Skeleton className="h-9 w-40 mb-8" />
+    <div className="max-w-5xl mx-auto space-y-8 animate-fadeIn">
+      <Skeleton className="h-9 w-40 mb-8" />
 
-        <div className="bg-[#faf8f5] rounded-doodle border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-6 md:p-8 space-y-6">
-          {/* Name Field Skeleton */}
-          <div>
-            <Skeleton className="h-4 w-28 mb-2" />
-            <Skeleton className="h-10 w-full rounded-doodle-input" />
-          </div>
-
-          <hr className="border-t-2 border-dashed border-black my-8" />
-
-          {/* Change Password Header & Toggle Button Skeleton */}
-          <div className="flex items-center justify-between">
-            <Skeleton className="h-5 w-40" />
-            <Skeleton className="h-8 w-32 rounded-doodle" />
-          </div>
-
-          {/* Save Button Skeleton */}
-          <Skeleton className="h-11 w-full rounded-doodle mt-4" />
+      <div className="bg-[#faf8f5] rounded-doodle border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-6 md:p-8 space-y-6">
+        {/* Name Field Skeleton */}
+        <div>
+          <Skeleton className="h-4 w-28 mb-2" />
+          <Skeleton className="h-10 w-full rounded-doodle-input" />
         </div>
+
+        <hr className="border-t-2 border-dashed border-black my-8" />
+
+        {/* Change Password Header & Toggle Button Skeleton */}
+        <div className="flex items-center justify-between">
+          <Skeleton className="h-5 w-40" />
+          <Skeleton className="h-8 w-32 rounded-doodle" />
+        </div>
+
+        {/* Save Button Skeleton */}
+        <Skeleton className="h-11 w-full rounded-doodle mt-4" />
       </div>
     </div>
   );
@@ -121,9 +118,8 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="flex-1 p-6 md:p-10 bg-[#f2ede0] overflow-y-auto">
-      <div className="max-w-5xl mx-auto">
-        <h1 className="text-3xl md:text-4xl font-bold text-black mb-8 tracking-wide font-sans">
+    <div className="max-w-5xl mx-auto">
+        <h1 className="text-xl sm:text-3xl md:text-4xl font-bold text-black mb-6 sm:mb-8 tracking-wide font-sans">
           {t.profileTitle}
         </h1>
 
@@ -256,7 +252,6 @@ export default function ProfilePage() {
             </button>
           </form>
         </div>
-      </div>
     </div>
   );
 }

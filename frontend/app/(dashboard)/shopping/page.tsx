@@ -236,7 +236,7 @@ export default function ShoppingListPage() {
           </h1>
           <p className="hidden sm:block text-sm font-bold text-gray-600 mt-1">{t.shoppingDescription}</p>
         </div>
-        <div className="flex flex-col items-stretch sm:items-end gap-1.5 min-w-[240px]">
+        <div className="flex flex-col items-stretch sm:items-end gap-1.5 sm:min-w-[240px]">
           <button
             onClick={handleAutoGenerate}
             disabled={isAutoGenerating}
