@@ -175,6 +175,15 @@ _Last updated: 2026-06-06_
 - **ความปลอดภัยของระบบและการตรวจสอบ (Build Validation):**
   - รันคำสั่งตรวจสอบชนิดตัวแปรและรูปแบบโค้ด TypeScript ด้วย `npx tsc --noEmit` ทั้งโครงการ ได้ผลลัพธ์ผ่านสมบูรณ์ 100% ปราศจากบั๊ก Syntax ใดๆ
 
+---
 
+## Root Route & Auth Pages Redirect Improvements ✅
 
-
+### การปรับปรุงที่สำคัญ
+- **Root Route Authentication Check:** ปรับปรุงหน้าแรก [page.tsx](file:///Users/joja/Development/smart-expense-tracker/frontend/app/page.tsx) จากที่เคยทำการ Redirect ไปที่ `/dashboard` โดยตรง ให้เป็นการตรวจสอบสถานะการเข้าสู่ระบบผ่าน endpoint `/api/v1/auth/me` ก่อน:
+  - หากตรวจสอบแล้วพบว่าล็อกอินอยู่ (Authenticated) จะทำการเปลี่ยนเส้นทางไปหน้า Dashboard (`/dashboard`)
+  - หากยังไม่ได้ล็อกอิน (Not Authenticated) จะทำการเปลี่ยนเส้นทางไปหน้า Login (`/login`)
+  - ในระหว่างทำการตรวจสอบ จะแสดงหน้าโหลด SkeletonOverlay เพื่อความราบรื่นและสวยงามตามธีมของระบบ
+- **Redirect Logged-in Users from Login & Register Pages:** ปรับปรุงหน้า [login/page.tsx](file:///Users/joja/Development/smart-expense-tracker/frontend/app/(auth)/login/page.tsx) และ [register/page.tsx](file:///Users/joja/Development/smart-expense-tracker/frontend/app/(auth)/register/page.tsx) ให้มีการตรวจสอบสถานะของเซสชัน:
+  - หากตรวจพบว่าผู้ใช้ทำการล็อกอินอยู่แล้ว จะทำการเปลี่ยนเส้นทางไปยังหน้าแดชบอร์ด (`/dashboard`) โดยอัตโนมัติ เพื่อไม่ให้ต้องเห็นฟอร์มล็อกอิน/สมัครซ้ำ
+  - ปรับปรุง Axios interceptor ใน [client.ts](file:///Users/joja/Development/smart-expense-tracker/frontend/lib/api/client.ts) เพื่อหลีกเลี่ยงการทำ infinite redirect loops บนหน้าที่เป็นหมวดหมู่ Auth (เช่น `/login`, `/register`, `/forgot-password`, `/reset-password`) และปิดการพยายาม Refresh โทเค็นโดยไม่จำเป็นเมื่อ API หน้าดังกล่าวส่งผลลัพธ์ไม่ผ่านกลับมา (401)

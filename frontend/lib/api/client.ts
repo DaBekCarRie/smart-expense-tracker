@@ -57,9 +57,18 @@ apiClient.interceptors.response.use(
 
     const originalRequest = error.config as (typeof error.config & { _retried?: boolean }) | undefined;
 
-    if (!originalRequest || originalRequest.url?.includes("/auth/refresh") || originalRequest._retried) {
+    if (
+      !originalRequest ||
+      originalRequest.url?.includes("/auth/refresh") ||
+      originalRequest.url?.includes("/auth/login") ||
+      originalRequest.url?.includes("/auth/register") ||
+      originalRequest._retried
+    ) {
       clearStoredToken();
-      window.location.href = "/login";
+      const path = window.location.pathname;
+      if (path !== "/login" && path !== "/register" && path !== "/forgot-password" && path !== "/reset-password") {
+        window.location.href = "/login";
+      }
       return Promise.reject(error);
     }
 
@@ -84,7 +93,10 @@ apiClient.interceptors.response.use(
     } catch {
       drainQueue(false);
       clearStoredToken();
-      window.location.href = "/login";
+      const path = window.location.pathname;
+      if (path !== "/login" && path !== "/register" && path !== "/forgot-password" && path !== "/reset-password") {
+        window.location.href = "/login";
+      }
       return Promise.reject(error);
     } finally {
       isRefreshing = false;

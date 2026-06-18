@@ -1,20 +1,40 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useState, useEffect, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { register } from "@/lib/api/auth";
+import { useQuery } from "@tanstack/react-query";
+import { getMe, register } from "@/lib/api/auth";
 import { useTranslation } from "@/lib/i18n/LanguageContext";
+import { SkeletonOverlay } from "@/components/ui/LoadingStates";
 
 export default function RegisterPage() {
   const { t } = useTranslation();
   const router = useRouter();
+
+  const { data: user, isLoading: isAuthLoading } = useQuery({
+    queryKey: ["user"],
+    queryFn: getMe,
+    staleTime: 60_000,
+    gcTime: 5 * 60_000,
+    retry: false,
+  });
+
+  useEffect(() => {
+    if (user) {
+      router.push("/dashboard");
+    }
+  }, [user, router]);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+
+  if (isAuthLoading || user) {
+    return <SkeletonOverlay />;
+  }
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
